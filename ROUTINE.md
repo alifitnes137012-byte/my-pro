@@ -28,11 +28,18 @@ writes `work/feeds.json`:
   articles, courses, events or announcements
 - `errors`: sources that failed
 
+Then `timeout 300 python3 scripts/collect_instagram.py --hours 36` writes
+`work/instagram.json`: recent Instagram posts/reels (caption, link, time, likes)
+via the official Graph API. If it reports `configured=False` or a token error,
+note it in `coverage` and cover Instagram with WebSearch instead. Accounts
+that are not Business/Creator return an error there; treat them the same way.
+Stories are never available through the API.
+
 ## 2. Collector agents (foreground, parallel, strictly bounded)
 In **one message**, make 3 Agent calls with `model: "sonnet"` and
 `run_in_background: false`, so they run in parallel and you get all results back
 in that same turn. Give each its teachers' entries from `sources.json` and the
-matching part of `work/feeds.json`:
+matching parts of `work/feeds.json` and `work/instagram.json`:
 - A: Hans Decoz, Glynis McCants, Felicia Bender, Michelle Buchanan
 - B: Tania Gabrielle, Kari Samuels, Dan Millman
 - C: Dr. J.C. Chaudhry, Sheelaa M. Bajaj, Sanjay B. Jumaani
