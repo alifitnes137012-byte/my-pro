@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 """Collect recent items from site RSS feeds and YouTube channel feeds.
 
-Deterministic first pass for the daily report; the collector agents fill in
-Instagram, X, Facebook and anything the feeds miss.
+Deterministic, time-bounded first pass for the daily report: RSS + YouTube
+feeds, plus a text snapshot of every website page in sources.json (for the
+writer to scan for new articles/news). Every request has a hard timeout and
+the whole run has a deadline, so this step can never hang the routine.
 
 Usage: python3 scripts/collect_feeds.py [--hours 36] [--out work/feeds.json]
 """
 import argparse
 import json
 import re
+import socket
 import sys
+import time
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
@@ -21,7 +25,7 @@ UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chr
 NS = {"atom": "http://www.w3.org/2005/Atom", "media": "http://search.yahoo.com/mrss/"}
 
 
-def fetch(url, timeout=25):
+def fetch(url, timeout=20):
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept-Language": "en"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read().decode("utf-8", "replace")
@@ -76,20 +80,33 @@ def youtube_feed_url(ref):
     return f"https://www.youtube.com/feeds/videos.xml?channel_id={m.group(1)}"
 
 
+def page_snapshot(url):
+    html = fetch(url)
+    html = re.sub(r"(?is)<(script|style|noscript|svg)[^>]*>.*?</\1>", " ", html)
+    links = sorted(set(re.findall(r'href="(https?://[^"#]+)"', html)))[:150]
+    return {"url": url, "text": strip_html(html)[:8000], "links": links}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--hours", type=int, default=36)
     ap.add_argument("--out", default=str(ROOT / "work" / "feeds.json"))
+    ap.add_argument("--deadline", type=int, default=600, help="seconds for the whole run")
     args = ap.parse_args()
+    socket.setdefaulttimeout(20)
+    stop_at = time.monotonic() + args.deadline
 
     cfg = json.loads((ROOT / "sources.json").read_text())
     cutoff = datetime.now(timezone.utc) - timedelta(hours=args.hours)
     result = {"generated_at": datetime.now(timezone.utc).isoformat(), "hours": args.hours,
-              "items": [], "errors": []}
+              "items": [], "pages": [], "errors": []}
 
     for t in cfg["teachers"]:
         jobs = [("site", u) for u in t["feeds"]] + [("youtube", y) for y in t["youtube"]]
         for kind, ref in jobs:
+            if time.monotonic() > stop_at:
+                result["errors"].append({"teacher": t["id"], "source": ref, "error": "skipped: deadline"})
+                continue
             try:
                 url = youtube_feed_url(ref) if kind == "youtube" else ref
                 for item in parse_feed(fetch(url)):
@@ -104,10 +121,22 @@ def main():
             except Exception as exc:  # network/policy failures are reported, not fatal
                 result["errors"].append({"teacher": t["id"], "source": ref, "error": str(exc)[:300]})
 
+        for url in t["sites"]:
+            if "contact" in url:
+                continue
+            if time.monotonic() > stop_at:
+                result["errors"].append({"teacher": t["id"], "source": url, "error": "skipped: deadline"})
+                continue
+            try:
+                result["pages"].append({"teacher": t["id"], **page_snapshot(url)})
+            except Exception as exc:
+                result["errors"].append({"teacher": t["id"], "source": url, "error": str(exc)[:300]})
+
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, ensure_ascii=False, indent=2))
-    print(f"{len(result['items'])} recent items, {len(result['errors'])} errors -> {out}")
+    print(f"{len(result['items'])} recent items, {len(result['pages'])} pages, "
+          f"{len(result['errors'])} errors -> {out}")
 
 
 if __name__ == "__main__":
