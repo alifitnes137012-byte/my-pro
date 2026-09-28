@@ -3,7 +3,8 @@
 You are the orchestrator of the daily Persian numerology report. Follow these
 steps in order. Work directory: the `my-pro` repo checkout (branch
 `claude/western-numerology-teachers-t0p49y`). Put all scratch output in `work/`
-(git-ignored). Do not commit or push anything during a daily run.
+(git-ignored). The only thing a daily run commits and pushes is the finished
+PDF under `reports/` (step 6).
 
 ## Hard rules (a previous run hung for 35+ minutes; these prevent it)
 - **Never use background agents.** Every Agent call uses `run_in_background: false`.
@@ -96,13 +97,16 @@ If it exits with code 2 (too long), shorten the per-teacher sections and rebuild
 Render pages 1–2 to PNG with pypdfium2 and look at them to confirm the Persian
 text is shaped correctly.
 
-## 6. Send by Gmail
-Gmail connector `send_message` to the `recipient` in `sources.json`:
-- subject: `گزارش روزانهٔ علم اعداد — <تاریخ شمسی>`
-- `htmlBody` (`<div dir="rtl">`): the overview, the top-story titles, and one line
-  on sources that could not be checked.
-- attachment: the PDF, base64 (`base64 -w0 file.pdf`), filename
-  `numerology-report-<YYYY-MM-DD>.pdf`, mimeType `application/pdf`.
+## 6. Publish the PDF and send by Gmail
+The Gmail tool takes attachments as inline base64, and even a small Persian PDF
+(with embedded fonts) is ~60k tokens of base64: far too long to pass reliably.
+So the PDF is linked, and the full report goes in the email body:
+1. `cp work/numerology-report-<DATE>.pdf reports/ && git add reports/ && git commit -m "Daily report <DATE>" && git push origin claude/western-numerology-teachers-t0p49y`
+   (retry the push up to 3 times; if it still fails, send the email without the link and say so).
+2. `python3 scripts/build_email.py work/report.reviewed.json "https://github.com/alifitnes137012-byte/my-pro/blob/claude/western-numerology-teachers-t0p49y/reports/numerology-report-<DATE>.pdf" > work/email.html`
+3. Gmail connector `send_message` to the `recipient` in `sources.json`, subject
+   `گزارش روزانهٔ علم اعداد — <تاریخ شمسی>`, `htmlBody` = the contents of `work/email.html`.
+   Do not use the `attachments` field.
 Send exactly one email per run. If the Gmail tool is missing or fails, say so
 clearly in the final message.
 

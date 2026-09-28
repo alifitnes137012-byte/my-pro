@@ -35,7 +35,7 @@ def main():
     parts.append('<h3 style="color:#3b2a6e">وضعیت اساتید</h3><ul>')
     for t in report.get("teachers", []):
         n = len(t.get("items", []))
-        note = f"{n} مطلب تازه" if n else escape(t.get("status") or "مطلب تازه‌ای نبود")
+        note = f"{str(n).translate(str.maketrans('0123456789', '۰۱۲۳۴۵۶۷۸۹'))} مطلب تازه" if n else escape(t.get("status") or "مطلب تازه‌ای نبود")
         parts.append(f"<li><b>{escape(t['name_fa'])}</b>: {note}</li>")
     parts.append('</ul><h3 style="color:#3b2a6e">منابع</h3><ol>')
     parts += [f'<li><a href="{escape(r["url"])}">{escape(r.get("title", ""))}</a> — {escape(r.get("platform", ""))}</li>'
