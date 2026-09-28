@@ -1,0 +1,98 @@
+{
+  "recipient": "alifitnes137012@gmail.com",
+  "max_pages": 50,
+  "teachers": [
+    {
+      "id": "decoz", "name_en": "Hans Decoz", "name_fa": "هانس دکوز", "group": "western", "country": "آمریکا",
+      "sites": ["https://www.worldnumerology.com/", "https://www.worldnumerology.com/contact-us/"],
+      "feeds": ["https://www.worldnumerology.com/feed/"],
+      "instagram": ["worldnumerology"],
+      "youtube": ["@worldnumerology"],
+      "facebook": ["https://www.facebook.com/worldnumerology/"],
+      "pinterest": ["https://www.pinterest.com/worldnumerology/"],
+      "x": []
+    },
+    {
+      "id": "mccants", "name_en": "Glynis McCants", "name_fa": "گلینیس مک‌کنتس", "group": "western", "country": "آمریکا",
+      "sites": ["https://www.glynishasyournumber.com/media.html", "https://linktr.ee/glynismccantsakathenumberslady"],
+      "feeds": [],
+      "instagram": ["glynismccants"],
+      "youtube": ["@GlynisHasYourNumber"],
+      "facebook": ["https://www.facebook.com/JustAskGlynis/"],
+      "pinterest": [], "x": []
+    },
+    {
+      "id": "bender", "name_en": "Felicia Bender", "name_fa": "فلیشیا بندر", "group": "western", "country": "آمریکا",
+      "sites": ["https://feliciabender.com/"],
+      "feeds": ["https://feliciabender.com/feed/"],
+      "instagram": ["feliciabender"],
+      "youtube": ["https://www.youtube.com/c/FeliciaBender"],
+      "facebook": [], "pinterest": [], "x": []
+    },
+    {
+      "id": "buchanan", "name_en": "Michelle Buchanan", "name_fa": "میشل بیوکنن", "group": "western", "country": "نیوزیلند",
+      "sites": ["https://www.michellebuchanan.co.nz/"],
+      "feeds": [],
+      "instagram": ["michelle.buchanan.11"],
+      "youtube": ["UCfT5cIBFe3cXlT1_B9m76ww"],
+      "facebook": ["https://www.facebook.com/michelle.buchanan.11/"],
+      "pinterest": [], "x": []
+    },
+    {
+      "id": "gabrielle", "name_en": "Tania Gabrielle", "name_fa": "تانیا گابریل", "group": "western", "country": "آمریکا",
+      "sites": ["https://taniagabrielle.com/", "https://taniagabrielle.com/contact/"],
+      "feeds": ["https://taniagabrielle.com/feed/"],
+      "instagram": ["tania_gabrielle"],
+      "youtube": ["https://www.youtube.com/numerologysecrets"],
+      "facebook": ["https://www.facebook.com/pages/Tania-Gabrielle/203439925034"],
+      "pinterest": [], "x": []
+    },
+    {
+      "id": "samuels", "name_en": "Kari Samuels", "name_fa": "کاری ساموئلز", "group": "western", "country": "آمریکا",
+      "sites": ["https://karisamuels.com/", "https://karisamuels.com/contact/"],
+      "feeds": ["https://karisamuels.com/feed/"],
+      "instagram": ["karisamuels"],
+      "youtube": ["https://www.youtube.com/user/KariSamuels"],
+      "facebook": ["https://www.facebook.com/karisamuels.intuitivecounselor"],
+      "pinterest": [], "x": []
+    },
+    {
+      "id": "millman", "name_en": "Dan Millman", "name_fa": "دن میلمن", "group": "western", "country": "آمریکا",
+      "sites": ["https://www.peacefulwarrior.com/", "https://www.peacefulwarrior.com/contact-our-office/"],
+      "feeds": ["https://www.peacefulwarrior.com/feed/"],
+      "instagram": ["danmillmanpw"],
+      "youtube": [],
+      "facebook": ["https://www.facebook.com/officialpeacefulwarrior/"],
+      "pinterest": [], "x": []
+    },
+    {
+      "id": "chaudhry", "name_en": "Dr. J.C. Chaudhry", "name_fa": "دکتر جی. سی. چادری", "group": "indian", "country": "هند / دبی / انگلستان",
+      "sites": ["https://www.jcchaudhry.com/", "https://www.jcchaudhry.com/contact-us"],
+      "feeds": [],
+      "instagram": ["jc_chaudhrynumerology"],
+      "youtube": ["UCkGRccoFIazt6GZUcdq6Byg"],
+      "facebook": ["https://www.facebook.com/NumerologistAndMotivator"],
+      "pinterest": [],
+      "x": ["jc_chaudhry"]
+    },
+    {
+      "id": "bajaj", "name_en": "Sheelaa M. Bajaj", "name_fa": "شیلا بجاج", "group": "indian", "country": "بنگلور، هند",
+      "sites": ["https://sheelaa.com/", "https://sheelaa.com/contact-us/"],
+      "feeds": ["https://sheelaa.com/feed/"],
+      "instagram": ["sheelaambajaj"],
+      "youtube": ["@Sheelaabajajm"],
+      "facebook": ["https://www.facebook.com/sheelaabajajm/"],
+      "pinterest": [],
+      "x": ["sheelaambajaj"]
+    },
+    {
+      "id": "jumaani", "name_en": "Sanjay B. Jumaani", "name_fa": "سانجی جومانی", "group": "indian", "country": "بمبئی، هند",
+      "sites": ["https://jumaani.com/", "https://jumaani.com/contact_us.asp"],
+      "feeds": [],
+      "instagram": ["sanjaybjumaani"],
+      "youtube": [],
+      "facebook": [], "pinterest": [],
+      "x": ["sanjaybjumaani"]
+    }
+  ]
+}

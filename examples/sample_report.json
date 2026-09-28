@@ -1,0 +1,12 @@
+{
+  "date_fa": "۶ مهر ۱۴۰۵",
+  "date_gregorian": "2026-09-28",
+  "overview": ["این یک نمونهٔ آزمایشی است. در گزارش واقعی، اینجا جمع‌بندی کلی محتوای منتشرشده توسط ده استاد علم اعداد در ۲۴ ساعت گذشته می‌آید."],
+  "top_stories": [{"title": "پیش‌بینی ماه اکتبر: ماه شخصی ۱ و شروع دوباره", "teacher": "تانیا گابریل", "body": "در این ویدیو توضیح داده می‌شود که انرژی عدد ۱ در ماه جهانی چه معنایی دارد و چرا زمان مناسبی برای شروع پروژه‌های تازه است.\nبند دوم توضیح.", "refs": [1]}],
+  "teachers": [
+    {"name_fa": "تانیا گابریل", "name_en": "Tania Gabrielle", "items": [{"title": "ویدیوی پیش‌بینی هفتگی", "platform": "یوتیوب", "body": "خلاصهٔ فارسی محتوا.", "refs": [1]}]},
+    {"name_fa": "هانس دکوز", "name_en": "Hans Decoz", "items": [], "status": "امروز محتوای تازه‌ای منتشر نشد."}
+  ],
+  "coverage": [{"teacher": "هانس دکوز", "source": "https://www.instagram.com/worldnumerology/", "status": "در دسترس نبود"}],
+  "references": [{"id": 1, "title": "Weekly Video Forecast", "url": "https://taniagabrielle.com/lp/weeklyvideoforecast/", "platform": "سایت", "published": "2026-09-27"}]
+}
