@@ -5,7 +5,7 @@
     {
       "id": "decoz", "name_en": "Hans Decoz", "name_fa": "هانس دکوز", "group": "western", "country": "آمریکا",
       "sites": ["https://www.worldnumerology.com/", "https://www.worldnumerology.com/contact-us/"],
-      "feeds": ["https://www.worldnumerology.com/feed/"],
+      "feeds": [],
       "instagram": ["worldnumerology"],
       "youtube": ["@worldnumerology"],
       "facebook": ["https://www.facebook.com/worldnumerology/"],
@@ -80,7 +80,7 @@
       "sites": ["https://sheelaa.com/", "https://sheelaa.com/contact-us/"],
       "feeds": ["https://sheelaa.com/feed/"],
       "instagram": ["sheelaambajaj"],
-      "youtube": ["@Sheelaabajajm"],
+      "youtube": ["@SheelaaBajaj"],
       "facebook": ["https://www.facebook.com/sheelaabajajm/"],
       "pinterest": [],
       "x": ["sheelaambajaj"]
