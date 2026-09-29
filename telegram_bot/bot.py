@@ -1,4 +1,4 @@
-"""ربات تلگرامی که پیام کاربر را همراه با یک پرامپت ثابت به ChatGPT می‌فرستد
+"""ربات تلگرامی که پیام کاربر را همراه با یک پرامپت ثابت به Claude می‌فرستد
 و جواب را همان‌جا در تلگرام برمی‌گرداند."""
 
 import logging
@@ -7,7 +7,7 @@ from collections import defaultdict, deque
 from pathlib import Path
 
 from dotenv import load_dotenv
-from openai import AsyncOpenAI
+from anthropic import AsyncAnthropic
 from telegram import Update
 from telegram.constants import ChatAction
 from telegram.ext import (
@@ -25,7 +25,9 @@ TELEGRAM_LIMIT = 4096
 load_dotenv(BASE_DIR / ".env")
 
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-5-5")
+# عمق فکر کردن مدل: low / medium / high / xhigh / max
+CLAUDE_EFFORT = os.getenv("CLAUDE_EFFORT", "medium")
 HISTORY_LENGTH = int(os.getenv("HISTORY_LENGTH", "10"))
 ALLOWED_USER_IDS = {
     int(x) for x in os.getenv("ALLOWED_USER_IDS", "").replace(" ", "").split(",") if x
@@ -34,10 +36,11 @@ ALLOWED_USER_IDS = {
 logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s: %(message)s", level=logging.INFO
 )
-logging.getLogger("httpx").setLevel(logging.WARNING)
+for name in ("httpx", "httpx2"):
+    logging.getLogger(name).setLevel(logging.WARNING)
 log = logging.getLogger("bot")
 
-client = AsyncOpenAI()  # OPENAI_API_KEY را از محیط می‌خواند
+client = AsyncAnthropic()  # ANTHROPIC_API_KEY را از محیط می‌خواند
 history: dict[int, deque] = defaultdict(lambda: deque(maxlen=HISTORY_LENGTH * 2))
 
 
@@ -111,22 +114,32 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     user_text = update.message.text
     await context.bot.send_chat_action(chat_id, ChatAction.TYPING)
 
-    messages = []
+    messages = [*history[chat_id], {"role": "user", "content": user_text}]
+    request = dict(
+        model=CLAUDE_MODEL,
+        max_tokens=16000,
+        output_config={"effort": CLAUDE_EFFORT},
+        # اگر مدل درخواستی را رد کند، سرور خودش با مدل دیگری دوباره امتحان می‌کند
+        betas=["server-side-fallback-2026-07-01"],
+        fallbacks="default",
+        messages=messages,
+    )
     prompt = load_prompt()
     if prompt:
-        messages.append({"role": "system", "content": prompt})
-    messages.extend(history[chat_id])
-    messages.append({"role": "user", "content": user_text})
+        request["system"] = prompt
 
     try:
-        response = await client.chat.completions.create(
-            model=OPENAI_MODEL, messages=messages
-        )
-        answer = response.choices[0].message.content or "(پاسخ خالی)"
+        response = await client.beta.messages.create(**request)
     except Exception:
-        log.exception("OpenAI request failed")
-        await update.message.reply_text("خطا در ارتباط با ChatGPT. دوباره امتحان کنید.")
+        log.exception("Claude request failed")
+        await update.message.reply_text("خطا در ارتباط با Claude. دوباره امتحان کنید.")
         return
+
+    if response.stop_reason == "refusal":
+        await update.message.reply_text("Claude به این درخواست پاسخ نداد.")
+        return
+    answer = "".join(b.text for b in response.content if b.type == "text").strip()
+    answer = answer or "(پاسخ خالی)"
 
     history[chat_id].append({"role": "user", "content": user_text})
     history[chat_id].append({"role": "assistant", "content": answer})
@@ -143,7 +156,7 @@ def main() -> None:
     app.add_handler(CommandHandler("setprompt", set_prompt))
     app.add_handler(CommandHandler("reset", reset))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    log.info("Bot started with model %s", OPENAI_MODEL)
+    log.info("Bot started with model %s", CLAUDE_MODEL)
     app.run_polling()
 
 
