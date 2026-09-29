@@ -25,9 +25,9 @@ TELEGRAM_LIMIT = 4096
 load_dotenv(BASE_DIR / ".env")
 
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
-CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-5-5")
-# عمق فکر کردن مدل: low / medium / high / xhigh / max
-CLAUDE_EFFORT = os.getenv("CLAUDE_EFFORT", "medium")
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-haiku-4-5")
+# عمق فکر کردن مدل: low / medium / high / xhigh / max (روی Haiku اثری ندارد)
+CLAUDE_EFFORT = os.getenv("CLAUDE_EFFORT", "low")
 HISTORY_LENGTH = int(os.getenv("HISTORY_LENGTH", "10"))
 ALLOWED_USER_IDS = {
     int(x) for x in os.getenv("ALLOWED_USER_IDS", "").replace(" ", "").split(",") if x
@@ -115,21 +115,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await context.bot.send_chat_action(chat_id, ChatAction.TYPING)
 
     messages = [*history[chat_id], {"role": "user", "content": user_text}]
-    request = dict(
-        model=CLAUDE_MODEL,
-        max_tokens=16000,
-        output_config={"effort": CLAUDE_EFFORT},
+    request = dict(model=CLAUDE_MODEL, max_tokens=16000, messages=messages)
+    # Haiku این دو تنظیم را نمی‌پذیرد
+    if not CLAUDE_MODEL.startswith("claude-haiku"):
+        request["output_config"] = {"effort": CLAUDE_EFFORT}
         # اگر مدل درخواستی را رد کند، سرور خودش با مدل دیگری دوباره امتحان می‌کند
-        betas=["server-side-fallback-2026-07-01"],
-        fallbacks="default",
-        messages=messages,
-    )
+        request["betas"] = ["server-side-fallback-2026-07-01"]
+        request["fallbacks"] = "default"
     prompt = load_prompt()
     if prompt:
         request["system"] = prompt
 
     try:
-        response = await client.beta.messages.create(**request)
+        response = await (
+            client.beta.messages.create(**request)
+            if "betas" in request
+            else client.messages.create(**request)
+        )
     except Exception:
         log.exception("Claude request failed")
         await update.message.reply_text("خطا در ارتباط با Claude. دوباره امتحان کنید.")
