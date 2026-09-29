@@ -1,12 +1,15 @@
 """ربات تلگرامی که پیام کاربر را همراه با یک پرامپت ثابت به Claude می‌فرستد
 و جواب را همان‌جا در تلگرام برمی‌گرداند."""
 
+import json
 import logging
 import os
 from collections import defaultdict, deque
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+import abjad
 from anthropic import AsyncAnthropic
 from telegram import Update
 from telegram.constants import ChatAction
@@ -21,6 +24,31 @@ from telegram.ext import (
 BASE_DIR = Path(__file__).resolve().parent
 PROMPT_FILE = BASE_DIR / "prompt.txt"
 TELEGRAM_LIMIT = 4096
+MAX_TOOL_ROUNDS = 5
+
+# محاسبهٔ اعداد با پایتون انجام می‌شود تا مدل در جمع حروف اشتباه نکند
+CALCULATE_TOOL = {
+    "name": "calculate",
+    "description": (
+        "عدد ابجد کبیر ذکر اول (نام و نام خانوادگی)، ذکر دوم (نام و نام خانوادگی + نام مادر) "
+        "و عدد ذکر سوم (جمع ارقام تاریخ تولد) را دقیق حساب می‌کند و برای هر عدد، "
+        "نزدیک‌ترین اسماءالحسنی را همراه با عدد ابجدشان برمی‌گرداند."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "full_name": {"type": "string", "description": "نام و نام خانوادگی دقیقاً با املای کاربر"},
+            "mother_name": {"type": "string", "description": "نام مادر دقیقاً با املای کاربر"},
+            "birth_date": {"type": "string", "description": "تاریخ تولد با همان تقویمی که کاربر داده، مثلاً 1370/5/12"},
+        },
+        "required": ["full_name", "mother_name", "birth_date"],
+    },
+}
+TOOL_INSTRUCTIONS = (
+    "\n\nدستور فنی: همهٔ اعداد را فقط با ابزار calculate به دست بیاور و خودت هیچ جمعی انجام نده. "
+    "از فهرست nearest_asma هر ذکر، با در نظر گرفتن نزدیکی عدد و تناسب معنا انتخاب کن. "
+    "اگر نام، نام خانوادگی، نام مادر یا تاریخ تولد در پیام نیست، فقط همان اطلاعات کم را کوتاه بپرس."
+)
 
 load_dotenv(BASE_DIR / ".env")
 
@@ -105,6 +133,42 @@ async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("حافظهٔ گفتگو پاک شد.")
 
 
+async def ask_claude(messages: list) -> object:
+    """درخواست را می‌فرستد و تا وقتی مدل ابزار calculate را صدا می‌زند، نتیجه را برمی‌گرداند."""
+    messages = list(messages)
+    request = dict(
+        model=CLAUDE_MODEL,
+        max_tokens=16000,
+        system=load_prompt() + TOOL_INSTRUCTIONS,
+        tools=[CALCULATE_TOOL],
+    )
+    # Haiku این دو تنظیم را نمی‌پذیرد
+    if not CLAUDE_MODEL.startswith("claude-haiku"):
+        request["output_config"] = {"effort": CLAUDE_EFFORT}
+        # اگر مدل درخواستی را رد کند، سرور خودش با مدل دیگری دوباره امتحان می‌کند
+        request["betas"] = ["server-side-fallback-2026-07-01"]
+        request["fallbacks"] = "default"
+    create = client.beta.messages.create if "betas" in request else client.messages.create
+
+    for _ in range(MAX_TOOL_ROUNDS):
+        response = await create(messages=messages, **request)
+        if response.stop_reason != "tool_use":
+            return response
+        results = []
+        for block in response.content:
+            if block.type != "tool_use":
+                continue
+            try:
+                output, is_error = json.dumps(abjad.calculate(**block.input), ensure_ascii=False), False
+            except Exception as exc:
+                output, is_error = f"خطا: {exc}", True
+            log.info("calculate %s -> %s", block.input, output[:200])
+            results.append({"type": "tool_result", "tool_use_id": block.id, "content": output, "is_error": is_error})
+        messages.append({"role": "assistant", "content": response.content})
+        messages.append({"role": "user", "content": results})
+    return response
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not is_allowed(update):
         await update.message.reply_text("شما اجازهٔ استفاده از این ربات را ندارید.")
@@ -115,23 +179,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await context.bot.send_chat_action(chat_id, ChatAction.TYPING)
 
     messages = [*history[chat_id], {"role": "user", "content": user_text}]
-    request = dict(model=CLAUDE_MODEL, max_tokens=16000, messages=messages)
-    # Haiku این دو تنظیم را نمی‌پذیرد
-    if not CLAUDE_MODEL.startswith("claude-haiku"):
-        request["output_config"] = {"effort": CLAUDE_EFFORT}
-        # اگر مدل درخواستی را رد کند، سرور خودش با مدل دیگری دوباره امتحان می‌کند
-        request["betas"] = ["server-side-fallback-2026-07-01"]
-        request["fallbacks"] = "default"
-    prompt = load_prompt()
-    if prompt:
-        request["system"] = prompt
-
     try:
-        response = await (
-            client.beta.messages.create(**request)
-            if "betas" in request
-            else client.messages.create(**request)
-        )
+        response = await ask_claude(messages)
     except Exception:
         log.exception("Claude request failed")
         await update.message.reply_text("خطا در ارتباط با Claude. دوباره امتحان کنید.")
