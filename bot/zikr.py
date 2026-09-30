@@ -38,8 +38,12 @@ def pick_nearest(targets: tuple[int, ...]) -> list[str]:
     return used
 
 
-def design(p: Person) -> str:
-    names = pick_nearest(numbers(p))
+def zikr_names(p: Person) -> list[str]:
+    return pick_nearest(numbers(p))
+
+
+def design(p: Person, names: list[str] | None = None) -> str:
+    names = names or zikr_names(p)
     body = "\n".join(f"{label}: یا {n}" for label, n in zip(LABELS, names))
     return (
         "با سلام ممنون از اینکه صبوری کردید و منتظر موندید. خدمت شما:\n\n"
