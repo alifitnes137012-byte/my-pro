@@ -11,27 +11,57 @@ import base64
 import hashlib
 import hmac
 import json
+import re
 import time
 from pathlib import Path
 from urllib.parse import parse_qsl
 
 from flask import Flask, abort, jsonify, request, send_from_directory
 from telegram import MenuButtonWebApp, Update, WebAppInfo
-from telegram.error import TelegramError
+from telegram.error import InvalidToken, NetworkError, TelegramError
 
 from .card import ASSETS, FONTS, render
 from .main import ACTIVE_FLOWS, ROOT, build_app, load_token, send_result, validate
 
 TOKEN = load_token()
+if not re.fullmatch(r"\d{5,}:[A-Za-z0-9_-]{30,}", TOKEN):
+    raise ValueError(
+        "توکن داخل token.txt شکل درستی ندارد. توکن باید مثل 7123456789:AAH... باشد "
+        f"(اول عدد، بعد یک دونقطه، بعد حروف انگلیسی). الان {len(TOKEN)} حرف دارد و با "
+        f"«{TOKEN[:4]}» شروع می‌شود."
+    )
 SECRET = hashlib.sha256(TOKEN.encode()).hexdigest()[:32]
 WEBAPP_DIR = Path(__file__).resolve().parent / "webapp"
 
 # PythonAnywhere رایگان هر پروسه را تک‌نخی اجرا می‌کند، پس یک event loop کافی است.
 loop = asyncio.new_event_loop()
 bot_app = build_app(TOKEN, updater=None)
-loop.run_until_complete(bot_app.initialize())
-
 app = Flask(__name__, static_folder=None)
+
+# اتصال به تلگرام در اولین درخواستی که لازمش دارد انجام می‌شود، با چند بار تلاش.
+# اگر پراکسی PythonAnywhere لحظه‌ای قطع باشد، سایت از کار نمی‌افتد و دفعهٔ بعد دوباره تلاش می‌کند.
+NEEDS_BOT = {"/webhook", "/setup", "/api/compute"}
+
+
+@app.before_request
+def ensure_bot_ready():
+    if request.path not in NEEDS_BOT or bot_app._initialized:
+        return None
+    error = None
+    for attempt in range(3):
+        try:
+            loop.run_until_complete(bot_app.initialize())
+            return None
+        except InvalidToken:
+            return "❌ تلگرام این توکن را قبول نکرد. توکن را دوباره از BotFather کپی کنید و در token.txt بگذارید.", 500
+        except NetworkError as exc:
+            error = exc
+            time.sleep(2 * (attempt + 1))
+    return (
+        "⏳ اتصال به تلگرام از طریق PythonAnywhere فعلاً برقرار نشد. چند دقیقه بعد دوباره همین صفحه را باز کنید."
+        f"<br><small>{type(error).__name__}: {error}</small>",
+        503,
+    )
 
 
 @app.post("/webhook")
