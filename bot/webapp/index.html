@@ -131,6 +131,8 @@ select {
 @keyframes shine { 60%, 100% { left: 130%; } }
 .btn.ghost { background: transparent; color: var(--gold); border: 1px solid var(--panel-edge); box-shadow: none; }
 .btn.ghost::after { display: none; }
+.btn.share { margin-top: 4px; font-size: 16px; padding: 13px; }
+.btn.share:disabled { opacity: 1; border-color: var(--gold); cursor: default; }
 .notice { text-align: center; color: var(--danger); margin-top: 12px; font-size: 14px; }
 
 /* در حال محاسبه */
@@ -234,7 +236,7 @@ const FA = "۰۱۲۳۴۵۶۷۸۹";
 const fa = (n) => String(n).replace(/\d/g, (d) => FA[d]);
 const MONTHS = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
 const HINTS = {
-  phone: '<p class="hint">شماره همراه برای پیگیری و ارتباط با شما</p>',
+  phone: '<p class="hint">دکمه را بزنید و در پنجرهٔ تلگرام ارسال شماره را تأیید کنید</p>',
   fullname: '<p class="hint">دقیقاً مطابق شناسنامه، با پیشوند و پسوند</p>',
   date: '<p class="hint">تاریخ شمسی؛ اگر تاریخ واقعی با شناسنامه فرق دارد، تاریخ واقعی را انتخاب کنید</p>',
 };
@@ -306,11 +308,25 @@ function openFlow(f) {
       y.append(option("", "سال")); for (let i = 1404; i >= 1300; i--) y.append(option(i, fa(i)));
       [d, m, y].forEach((s) => (s.dataset.part = s === d ? "d" : s === m ? "m" : "y"));
       wrap.append(d, m, y); box.insertBefore(wrap, err);
+    } else if (x.kind === "phone") {
+      // فقط شمارهٔ خود کاربر از طریق پنجرهٔ تأیید تلگرام؛ تایپ دستی ممکن نیست
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.className = "btn ghost share"; btn.textContent = "📱 ارسال شمارهٔ من";
+      btn.onclick = () => {
+        if (!tg || !tg.requestContact) { err.textContent = "لطفاً تلگرام را به‌روز کنید."; box.classList.add("invalid"); return; }
+        tg.requestContact((shared, res) => {
+          if (!shared) { box.classList.add("invalid"); err.textContent = "برای ادامه، ارسال شماره لازم است."; return; }
+          const phone = res && res.responseUnsafe && res.responseUnsafe.contact && res.responseUnsafe.contact.phone_number;
+          box.dataset.ok = "1"; box.classList.remove("invalid");
+          btn.textContent = "✅ " + (phone ? fa(phone.replace(/^\+?98/, "0")) : "شماره ارسال شد");
+          btn.disabled = true; haptic("success");
+        });
+      };
+      box.insertBefore(btn, err);
     } else {
       const inp = document.createElement("input");
-      inp.type = x.kind === "phone" ? "tel" : "text"; inp.autocomplete = "off";
-      inp.placeholder = x.kind === "fullname" ? "مثلاً: علی صادقی" : x.kind === "phone" ? "۰۹۱۲۳۴۵۶۷۸۹" : label;
-      if (x.kind === "phone") { inp.inputMode = "tel"; inp.dir = "ltr"; inp.style.textAlign = "right"; }
+      inp.type = "text"; inp.autocomplete = "off";
+      inp.placeholder = x.kind === "fullname" ? "مثلاً: علی صادقی" : label;
       box.insertBefore(inp, err);
     }
     form.appendChild(box);
@@ -325,7 +341,8 @@ function collect() {
     if (x.kind === "date") {
       const p = (k) => box.querySelector(`[data-part="${k}"]`).value;
       values[x.key] = p("y") && p("m") && p("d") ? `${p("y")}/${p("m")}/${p("d")}` : "";
-    } else values[x.key] = box.querySelector("input").value;
+    } else if (x.kind === "phone") values[x.key] = box.dataset.ok ? "shared" : "";
+    else values[x.key] = box.querySelector("input").value;
   });
   return values;
 }

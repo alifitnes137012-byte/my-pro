@@ -31,20 +31,8 @@ from .pin import gregorian_to_jalali
 from .storage import ROOT, TEHRAN, records_for_day
 
 REPORT_TO = os.environ.get("REPORT_TO", "alifitnes137012@gmail.com")
-FLOW_NAMES = {"pin": "رمز عابر بانکی", "zikr": "ذکر شخصی"}
 
-COLUMNS = [
-    ("ردیف", 7),
-    ("ساعت", 9),
-    ("سرویس", 16),
-    ("نام و نام خانوادگی", 24),
-    ("شماره همراه", 15),
-    ("اسم صدا زده‌شده", 16),
-    ("تاریخ تولد", 12),
-    ("نام پدر", 14),
-    ("نام مادر", 14),
-    ("آیدی تلگرام", 16),
-]
+COLUMNS = [("نام و نام خانوادگی", 30), ("شماره همراه", 18)]
 
 
 def _jalali(day: str) -> str:
@@ -70,25 +58,11 @@ def build_excel(day: str, rows: list[dict]) -> bytes:
         cell.font, cell.fill, cell.alignment, cell.border = Font(bold=True, size=12), gold, center, border
         ws.column_dimensions[cell.column_letter].width = width
 
-    for n, r in enumerate(rows, start=1):
-        date = r.get("date")
-        birth = f"{date[2]}/{date[1]:02d}/{date[0]:02d}" if date else ""
-        who = f"@{r['username']}" if r.get("username") else str(r.get("user_id") or "")
-        ws.append([
-            n,
-            r["created"][11:16],
-            FLOW_NAMES.get(r["flow"], r["flow"]),
-            r.get("full", ""),
-            r.get("phone", ""),
-            r.get("called", ""),
-            birth,
-            r.get("father", ""),
-            r.get("mother", ""),
-            who,
-        ])
+    for r in rows:
+        ws.append([r["full"], r["phone"]])
         for cell in ws[ws.max_row]:
             cell.alignment, cell.border = center, border
-        ws.cell(row=ws.max_row, column=5).number_format = "@"  # صفر اول شماره حفظ شود
+        ws.cell(row=ws.max_row, column=2).number_format = "@"  # صفر اول شماره حفظ شود
 
     ws.freeze_panes = "A2"
     buf = io.BytesIO()

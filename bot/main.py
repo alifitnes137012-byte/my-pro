@@ -33,7 +33,7 @@ from telegram.warnings import PTBUserWarning
 
 from .abjad import abjad, to_ascii_digits, unknown_letters
 from .card import ASSETS, render
-from .storage import save_record
+from .storage import save_phone, save_record
 from .pin import PinInput, design_pin, to_gregorian
 from .zikr import Person, design, zikr_names
 
@@ -94,7 +94,9 @@ def normalize_phone(text: str) -> str | None:
             digits = digits[len(prefix):]
     if len(digits) == 10 and digits.startswith("9"):
         digits = "0" + digits
-    return digits if re.fullmatch(r"09\d{9}", digits) else None
+    if re.fullmatch(r"09\d{9}", digits):
+        return digits
+    return "+" + digits if len(digits) >= 8 else None  # شمارهٔ خارج از ایران
 
 
 def validate(field: Field, text: str):
@@ -191,7 +193,7 @@ FLOWS = [
             Field(
                 "phone",
                 "📱 شماره همراه",
-                "«شماره همراه» خود را وارد کنید (مثلاً ۰۹۱۲۳۴۵۶۷۸۹)\nیا دکمهٔ «📱 ارسال شمارهٔ من» را بزنید.",
+                "برای ثبت «شماره همراه»، دکمهٔ «📱 ارسال شمارهٔ من» پایین صفحه را بزنید.",
                 kind="phone",
             ),
             Field("mother", "🤱 نام مادر", "«نام مادر» را مطابق شناسنامه وارد کنید:"),
@@ -214,7 +216,7 @@ FLOWS = [
             Field(
                 "phone",
                 "📱 شماره همراه",
-                "«شماره همراه» خود را وارد کنید (مثلاً ۰۹۱۲۳۴۵۶۷۸۹)\nیا دکمهٔ «📱 ارسال شمارهٔ من» را بزنید.",
+                "برای ثبت «شماره همراه»، دکمهٔ «📱 ارسال شمارهٔ من» پایین صفحه را بزنید.",
                 kind="phone",
             ),
             Field(
@@ -347,15 +349,21 @@ def make_conversation(flow: Flow, text_filter) -> ConversationHandler:
     def on_text(i: int):
         async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             field = flow.fields[i]
-            contact = update.message.contact
-            text = contact.phone_number if contact else (update.message.text or "")
-            value, error = validate(field, text)
+            if field.kind == "phone":
+                phone = own_contact_phone(update)
+                if not phone:
+                    await update.message.reply_text(
+                        "⚠️ شماره فقط با دکمهٔ «📱 ارسال شمارهٔ من» پایین صفحه ثبت می‌شود.", reply_markup=CONTACT_KB
+                    )
+                    return i
+                context.user_data[field.key] = phone
+                await update.message.reply_text("✅ شماره ثبت شد.", reply_markup=CANCEL_KB)
+                return await advance(update.message, context, i)
+            value, error = validate(field, update.message.text or "")
             if error:
                 await update.message.reply_text(error)
                 return i
             context.user_data[field.key] = value
-            if field.kind == "phone":
-                await update.message.reply_text("✅ شماره ثبت شد.", reply_markup=CANCEL_KB)
             return await advance(update.message, context, i)
 
         return handler
@@ -395,7 +403,7 @@ def make_conversation(flow: Flow, text_filter) -> ConversationHandler:
 
         await query.delete_message()
         user = update.effective_user
-        save_record(flow.key, d, user.id, user.username)
+        save_record(d["full"], d["phone"])
         loading = await send_cached(context, query.message.chat_id, "animation", "loading.gif")
         result = flow.compute(d, user.id)
         if LOADING_SECONDS:
@@ -425,6 +433,22 @@ def make_conversation(flow: Flow, text_filter) -> ConversationHandler:
         persistent=True,
         per_message=False,
     )
+
+
+def own_contact_phone(update: Update) -> str | None:
+    """شمارهٔ خود کاربر، فقط اگر با دکمهٔ «ارسال شمارهٔ من» فرستاده باشد (نه مخاطب دیگری)."""
+    contact = update.message.contact if update.message else None
+    if not contact or contact.user_id != update.effective_user.id:
+        return None
+    phone = normalize_phone(contact.phone_number)
+    if phone:
+        save_phone(update.effective_user.id, phone)
+    return phone
+
+
+async def remember_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """شماره‌ای که از مینی اپ (requestContact) یا هر جای دیگر فرستاده شود ذخیره می‌شود."""
+    own_contact_phone(update)
 
 
 async def end_silently(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -458,6 +482,7 @@ def build_app(token: str, **builder_options) -> Application:
     text = filters.TEXT & ~filters.COMMAND & ~filters.Regex(reserved)
     # هر گفت‌وگو در گروه جدا، تا زدن دکمهٔ دیگر منو گفت‌وگوی قبلی را ببندد و بعدی را شروع کند
     app.add_handler(CommandHandler("start", start), group=0)
+    app.add_handler(MessageHandler(filters.CONTACT, remember_contact), group=100)
     for g, flow in enumerate(ACTIVE_FLOWS, start=1):
         app.add_handler(make_conversation(flow, text), group=g)
     return app

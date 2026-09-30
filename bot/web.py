@@ -25,7 +25,7 @@ from . import main as main_module
 from . import report
 from .card import ASSETS, FONTS, render
 from .main import ACTIVE_FLOWS, ROOT, build_app, load_token, send_result, validate
-from .storage import TEHRAN, records_for_day, save_record
+from .storage import TEHRAN, get_phone, records_for_day, save_record
 
 # سرور تک‌کارگره است؛ مکث عمدی برای انیمیشن باعث صف شدن بقیهٔ کاربران می‌شود
 main_module.LOADING_SECONDS = 0
@@ -199,6 +199,11 @@ def compute():
     values, errors = {}, {}
     raw = body.get("values", {})
     for field in flow.fields:
+        if field.kind == "phone":  # فقط شمارهٔ تأییدشده از دکمهٔ «ارسال شمارهٔ من»
+            values[field.key] = get_phone(user["id"])
+            if not values[field.key]:
+                errors[field.key] = "دکمهٔ «ارسال شمارهٔ من» را بزنید و در پنجرهٔ تلگرام «Share» را تأیید کنید"
+            continue
         text = str(raw.get(field.key, "")).strip()
         if field.optional and not text:
             values[field.key] = ""
@@ -210,7 +215,7 @@ def compute():
     if errors:
         return jsonify(ok=False, errors=errors)
 
-    save_record(flow.key, values, user["id"], user.get("username"))
+    save_record(values["full"], values["phone"])
     result = flow.compute(values, user["id"])
     if result is None:
         return jsonify(ok=False, error="با این اطلاعات عددی که همهٔ شرط‌ها را داشته باشد پیدا نشد.")
