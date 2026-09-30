@@ -1,5 +1,9 @@
 __pycache__/
 bot_state.pickle
+data.sqlite3
+mail.txt
+report-*.xlsx
+report_state.json
 secret.key
 token.txt
 webapp_url.txt

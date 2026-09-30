@@ -13,16 +13,22 @@ import hmac
 import json
 import re
 import time
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import parse_qsl
 
-from flask import Flask, abort, jsonify, request, send_from_directory
+from flask import Flask, Response, abort, jsonify, request, send_from_directory
 from telegram import MenuButtonWebApp, Update, WebAppInfo
 from telegram.error import InvalidToken, NetworkError, TelegramError
 
+from . import main as main_module
+from . import report
 from .card import ASSETS, FONTS, render
 from .main import ACTIVE_FLOWS, ROOT, build_app, load_token, send_result, validate
+from .storage import TEHRAN, records_for_day, save_record
 
+# سرور تک‌کارگره است؛ مکث عمدی برای انیمیشن باعث صف شدن بقیهٔ کاربران می‌شود
+main_module.LOADING_SECONDS = 0
 TOKEN = load_token()
 if not re.fullmatch(r"\d{5,}:[A-Za-z0-9_-]{30,}", TOKEN):
     raise ValueError(
@@ -31,6 +37,7 @@ if not re.fullmatch(r"\d{5,}:[A-Za-z0-9_-]{30,}", TOKEN):
         f"«{TOKEN[:4]}» شروع می‌شود."
     )
 SECRET = hashlib.sha256(TOKEN.encode()).hexdigest()[:32]
+REPORT_KEY = hashlib.sha256(b"report" + TOKEN.encode()).hexdigest()[:20]
 WEBAPP_DIR = Path(__file__).resolve().parent / "webapp"
 
 # PythonAnywhere رایگان هر پروسه را تک‌نخی اجرا می‌کند، پس یک event loop کافی است.
@@ -85,8 +92,47 @@ def setup():
     )
     return (
         f"✅ وب‌هوک ثبت شد: {base}webhook<br>"
-        f"✅ مینی اپ: {base}app<br>حالا در تلگرام /start بزنید."
+        f"✅ مینی اپ: {base}app<br>حالا در تلگرام /start بزنید.<br><br>"
+        f"📧 لینک ارسال گزارش روزانه (برای cron-job.org):<br><code>{base}report?key={REPORT_KEY}</code><br>"
+        f"📥 دانلود اکسل امروز: <a href='{base}report?key={REPORT_KEY}&download=1'>دانلود</a>"
     )
+
+
+@app.get("/report")
+def daily_report():
+    if request.args.get("key") != REPORT_KEY:
+        abort(403)
+    day = request.args.get("date") or datetime.now(TEHRAN).strftime("%Y-%m-%d")
+    if request.args.get("download"):
+        xlsx = report.build_excel(day, records_for_day(day))
+        return Response(
+            xlsx,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename=report-{day}.xlsx"},
+        )
+    try:
+        count = report.send_report(day)
+    except Exception as exc:  # خطای ایمیل نباید سایت را از کار بیندازد
+        return f"❌ ارسال ایمیل ناموفق بود: {type(exc).__name__}: {exc}", 500
+    return f"✅ گزارش {day} با {count} ردیف به {report.REPORT_TO} فرستاده شد."
+
+
+@app.after_request
+def catch_up_report(response):
+    """پشتیبان: اگر گزارش دیروز فرستاده نشده، بعد از اولین درخواست امروز فرستاده می‌شود."""
+    day = report.yesterday()
+    if request.path == "/webhook" and day not in report.sent_days() and (ROOT / "mail.txt").exists():
+        global _last_catch_up
+        if time.time() - _last_catch_up > 3600:  # اگر ایمیل خطا داد، هر ساعت یک بار دوباره
+            _last_catch_up = time.time()
+            try:
+                report.send_report(day)
+            except Exception:
+                app.logger.exception("daily report catch-up failed")
+    return response
+
+
+_last_catch_up = 0.0
 
 
 @app.get("/")
@@ -164,17 +210,19 @@ def compute():
     if errors:
         return jsonify(ok=False, errors=errors)
 
+    save_record(flow.key, values, user["id"], user.get("username"))
     result = flow.compute(values, user["id"])
     if result is None:
         return jsonify(ok=False, error="با این اطلاعات عددی که همهٔ شرط‌ها را داشته باشد پیدا نشد.")
 
     # نتیجه در چت هم فرستاده می‌شود تا ذخیره بماند
     try:
-        loop.run_until_complete(send_result(bot_app.bot, user["id"], result))
+        photo = render(result.title, result.name, result.items)
+        loop.run_until_complete(send_result(bot_app.bot, user["id"], result, photo=photo))
         sent = True
     except TelegramError:
         sent = False
-    card = base64.b64encode(render(result.title, result.name, result.items)).decode()
+    card = base64.b64encode(photo).decode()
     return jsonify(
         ok=True,
         title=result.title,

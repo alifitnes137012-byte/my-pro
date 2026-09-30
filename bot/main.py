@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, Update, WebAppInfo
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -33,6 +33,7 @@ from telegram.warnings import PTBUserWarning
 
 from .abjad import abjad, to_ascii_digits, unknown_letters
 from .card import ASSETS, render
+from .storage import save_record
 from .pin import PinInput, design_pin, to_gregorian
 from .zikr import Person, design, zikr_names
 
@@ -42,7 +43,7 @@ logging.basicConfig(format="%(asctime)s %(name)s %(levelname)s %(message)s", lev
 ROOT = Path(__file__).resolve().parent.parent
 BTN_CANCEL = "❌ انصراف"
 CONFIRM = 100
-LOADING_SECONDS = 3  # مدت نمایش انیمیشن «در حال محاسبه»
+LOADING_SECONDS = 3  # مدت نمایش انیمیشن «در حال محاسبه» (روی سرور صفر است تا صف ایجاد نشود)
 FA_DIGITS = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
 DATE_HELP = (
     "به شکل سال/ماه/روز شمسی وارد کنید.\n"
@@ -59,7 +60,7 @@ class Field:
     key: str
     label: str  # با ایموجی، برای خلاصه و دکمهٔ ویرایش
     prompt: str
-    kind: str = "name"  # name | fullname | date
+    kind: str = "name"  # name | fullname | date | phone
     optional: bool = False
 
 
@@ -85,12 +86,26 @@ def _bad_name(text: str) -> bool:
     return not text or abjad(text) == 0 or bool(unknown_letters(text))
 
 
+def normalize_phone(text: str) -> str | None:
+    """۰۹۱۲..., +98912..., 0098912..., 912... → 09123456789"""
+    digits = re.sub(r"\D", "", to_ascii_digits(text))
+    for prefix in ("0098", "98"):
+        if digits.startswith(prefix) and len(digits) == len(prefix) + 10:
+            digits = digits[len(prefix):]
+    if len(digits) == 10 and digits.startswith("9"):
+        digits = "0" + digits
+    return digits if re.fullmatch(r"09\d{9}", digits) else None
+
+
 def validate(field: Field, text: str):
     """مقدار معتبر یا (None, پیام خطا)."""
     text = text.strip()
     if field.kind == "date":
         date = parse_date(text)
         return (date, None) if date else (None, "⚠️ تاریخ معتبر نیست. لطفاً مثل ۱۳۷۰/۰۵/۱۲ وارد کنید:")
+    if field.kind == "phone":
+        phone = normalize_phone(text)
+        return (phone, None) if phone else (None, "⚠️ شماره همراه معتبر نیست. لطفاً مثل ۰۹۱۲۳۴۵۶۷۸۹ وارد کنید:")
     if _bad_name(text):
         return None, "⚠️ لطفاً فقط با حروف فارسی بنویسید:"
     text = " ".join(text.split())
@@ -173,6 +188,12 @@ FLOWS = [
                 "لطفاً «نام و نام خانوادگی» خود را مطابق شناسنامه و به فارسی وارد کنید:",
                 kind="fullname",
             ),
+            Field(
+                "phone",
+                "📱 شماره همراه",
+                "«شماره همراه» خود را وارد کنید (مثلاً ۰۹۱۲۳۴۵۶۷۸۹)\nیا دکمهٔ «📱 ارسال شمارهٔ من» را بزنید.",
+                kind="phone",
+            ),
             Field("mother", "🤱 نام مادر", "«نام مادر» را مطابق شناسنامه وارد کنید:"),
             Field("date", "📅 تاریخ تولد", "«تاریخ تولد» را " + DATE_HELP, kind="date"),
         ],
@@ -189,6 +210,12 @@ FLOWS = [
                 "👤 نام و نام خانوادگی",
                 "«نام و نام خانوادگی» را دقیقاً مطابق شناسنامه (با پیشوند و پسوند) وارد کنید:",
                 kind="fullname",
+            ),
+            Field(
+                "phone",
+                "📱 شماره همراه",
+                "«شماره همراه» خود را وارد کنید (مثلاً ۰۹۱۲۳۴۵۶۷۸۹)\nیا دکمهٔ «📱 ارسال شمارهٔ من» را بزنید.",
+                kind="phone",
             ),
             Field(
                 "called",
@@ -209,6 +236,9 @@ MENU_BUTTONS = [f.button for f in ACTIVE_FLOWS]
 # هر لیست یک ردیف منو است
 MAIN_MENU = ReplyKeyboardMarkup([[b] for b in MENU_BUTTONS], resize_keyboard=True)
 CANCEL_KB = ReplyKeyboardMarkup([[BTN_CANCEL]], resize_keyboard=True)
+CONTACT_KB = ReplyKeyboardMarkup(
+    [[KeyboardButton("📱 ارسال شمارهٔ من", request_contact=True)], [BTN_CANCEL]], resize_keyboard=True
+)
 
 
 # ───────────────────────── گفت‌وگو ─────────────────────────
@@ -230,13 +260,13 @@ async def send_cached(context, chat_id: int, kind: str, filename: str, **kwargs)
     return msg
 
 
-async def send_result(bot, chat_id: int, result: "Result | None", reply_markup=MAIN_MENU):
+async def send_result(bot, chat_id: int, result: "Result | None", reply_markup=MAIN_MENU, photo: bytes | None = None):
     if result is None:
         await bot.send_message(
             chat_id, "⚠️ با این اطلاعات عددی که همهٔ شرط‌ها را داشته باشد پیدا نشد.", reply_markup=reply_markup
         )
         return
-    photo = render(result.title, result.name, result.items)
+    photo = photo or render(result.title, result.name, result.items)
     await bot.send_photo(chat_id, photo, caption=result.caption, reply_markup=reply_markup)
 
 
@@ -298,7 +328,7 @@ def make_conversation(flow: Flow, text_filter) -> ConversationHandler:
     async def ask(message, i: int, editing: bool = False) -> int:
         field = flow.fields[i]
         prefix = "✏️ " if editing else f"{i + 1} از {n} | ".translate(FA_DIGITS)
-        markup = _skip_kb(flow) if field.optional else None
+        markup = _skip_kb(flow) if field.optional else CONTACT_KB if field.kind == "phone" else None
         await message.reply_text(prefix + field.prompt, reply_markup=markup)
         return i
 
@@ -316,11 +346,16 @@ def make_conversation(flow: Flow, text_filter) -> ConversationHandler:
 
     def on_text(i: int):
         async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-            value, error = validate(flow.fields[i], update.message.text)
+            field = flow.fields[i]
+            contact = update.message.contact
+            text = contact.phone_number if contact else (update.message.text or "")
+            value, error = validate(field, text)
             if error:
                 await update.message.reply_text(error)
                 return i
-            context.user_data[flow.fields[i].key] = value
+            context.user_data[field.key] = value
+            if field.kind == "phone":
+                await update.message.reply_text("✅ شماره ثبت شد.", reply_markup=CANCEL_KB)
             return await advance(update.message, context, i)
 
         return handler
@@ -359,15 +394,18 @@ def make_conversation(flow: Flow, text_filter) -> ConversationHandler:
             return await cancel(update, context)
 
         await query.delete_message()
+        user = update.effective_user
+        save_record(flow.key, d, user.id, user.username)
         loading = await send_cached(context, query.message.chat_id, "animation", "loading.gif")
-        result = flow.compute(d, update.effective_user.id)
-        await asyncio.sleep(LOADING_SECONDS)
+        result = flow.compute(d, user.id)
+        if LOADING_SECONDS:
+            await asyncio.sleep(LOADING_SECONDS)
         await send_result(context.bot, query.message.chat_id, result)
         await loading.delete()
         context.user_data.clear()
         return ConversationHandler.END
 
-    states = {i: [MessageHandler(text_filter, on_text(i))] for i in range(n)}
+    states = {i: [MessageHandler(text_filter | filters.CONTACT, on_text(i))] for i in range(n)}
     for i, field in enumerate(flow.fields):
         if field.optional:
             states[i].append(CallbackQueryHandler(on_skip(i), pattern=f"^{flow.key}:skip$"))

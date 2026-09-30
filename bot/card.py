@@ -53,7 +53,9 @@ def _star(draw: ImageDraw.ImageDraw, cx: float, cy: float, r: float, fill=None, 
         draw.polygon(pts, fill=fill, outline=outline, width=width)
 
 
+@lru_cache(maxsize=1)
 def _background() -> Image.Image:
+    """پس‌زمینه یک بار ساخته می‌شود و برای هر کارت فقط کپی می‌شود."""
     img = Image.new("RGB", (W, H))
     draw = ImageDraw.Draw(img)
     for y in range(H):
@@ -71,7 +73,7 @@ def _background() -> Image.Image:
 
 def render(title: str, full_name: str, items: list[tuple[str, str, str]]) -> bytes:
     """items: [(عنوان، مقدار اصلی، زیرنویس)] — سه مورد جا می‌شود."""
-    img = _background()
+    img = _background().copy()
     draw = ImageDraw.Draw(img)
 
     # سربرگ: لوگو با حلقهٔ طلایی
@@ -96,5 +98,5 @@ def render(title: str, full_name: str, items: list[tuple[str, str, str]]) -> byt
     _center(draw, H - 70, BRAND, _font("Bold", 30), GOLD_SOFT)
 
     buf = io.BytesIO()
-    img.save(buf, "PNG", optimize=True)
+    img.save(buf, "PNG", compress_level=6)
     return buf.getvalue()

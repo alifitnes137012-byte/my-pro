@@ -234,6 +234,7 @@ const FA = "۰۱۲۳۴۵۶۷۸۹";
 const fa = (n) => String(n).replace(/\d/g, (d) => FA[d]);
 const MONTHS = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
 const HINTS = {
+  phone: '<p class="hint">شماره همراه برای پیگیری و ارتباط با شما</p>',
   fullname: '<p class="hint">دقیقاً مطابق شناسنامه، با پیشوند و پسوند</p>',
   date: '<p class="hint">تاریخ شمسی؛ اگر تاریخ واقعی با شناسنامه فرق دارد، تاریخ واقعی را انتخاب کنید</p>',
 };
@@ -307,8 +308,9 @@ function openFlow(f) {
       wrap.append(d, m, y); box.insertBefore(wrap, err);
     } else {
       const inp = document.createElement("input");
-      inp.type = "text"; inp.autocomplete = "off";
-      inp.placeholder = x.kind === "fullname" ? "مثلاً: علی صادقی" : label;
+      inp.type = x.kind === "phone" ? "tel" : "text"; inp.autocomplete = "off";
+      inp.placeholder = x.kind === "fullname" ? "مثلاً: علی صادقی" : x.kind === "phone" ? "۰۹۱۲۳۴۵۶۷۸۹" : label;
+      if (x.kind === "phone") { inp.inputMode = "tel"; inp.dir = "ltr"; inp.style.textAlign = "right"; }
       box.insertBefore(inp, err);
     }
     form.appendChild(box);
