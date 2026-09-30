@@ -1,2 +1,1 @@
 python-telegram-bot>=21,<23
-anthropic>=0.70

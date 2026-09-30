@@ -151,7 +151,7 @@ async def on_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     d = context.user_data
     await query.edit_message_text(_summary(d) + "\n\n⏳ در حال محاسبه، لطفاً کمی صبر کنید...")
     person = Person(d["first"], d["last"], d["mother"], *d["date"])
-    result = await design(person)
+    result = design(person)
     await query.message.reply_text(result, reply_markup=MAIN_MENU)
     context.user_data.clear()
     return ConversationHandler.END
