@@ -17,7 +17,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, Update, WebAppInfo
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+    Update,
+    WebAppInfo,
+)
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -175,7 +183,8 @@ class Flow:
     intro: str
     fields: list[Field]
     compute: Callable[[dict, int], Result | None]
-    enabled: bool = True  # False: دکمه در منو نمایش داده نمی‌شود
+    enabled: bool = True  # False: هیچ‌جا نمایش داده نمی‌شود
+    in_bot: bool = True  # False: فقط داخل مینی اپ، بدون دکمه در چت بات
 
 
 FLOWS = [
@@ -230,13 +239,17 @@ FLOWS = [
             Field("mother", "🤱 نام مادر", "«نام مادر» را وارد کنید:"),
         ],
         compute_pin,
+        in_bot=False,  # فقط از طریق مینی اپ
     ),
 ]
 
 ACTIVE_FLOWS = [f for f in FLOWS if f.enabled]
-MENU_BUTTONS = [f.button for f in ACTIVE_FLOWS]
+BOT_FLOWS = [f for f in ACTIVE_FLOWS if f.in_bot]
+MENU_BUTTONS = [f.button for f in BOT_FLOWS]
 # هر لیست یک ردیف منو است
-MAIN_MENU = ReplyKeyboardMarkup([[b] for b in MENU_BUTTONS], resize_keyboard=True)
+MAIN_MENU = (
+    ReplyKeyboardMarkup([[b] for b in MENU_BUTTONS], resize_keyboard=True) if MENU_BUTTONS else ReplyKeyboardRemove()
+)
 CANCEL_KB = ReplyKeyboardMarkup([[BTN_CANCEL]], resize_keyboard=True)
 CONTACT_KB = ReplyKeyboardMarkup(
     [[KeyboardButton("📱 ارسال شمارهٔ من", request_contact=True)], [BTN_CANCEL]], resize_keyboard=True
@@ -262,7 +275,7 @@ async def send_cached(context, chat_id: int, kind: str, filename: str, **kwargs)
     return msg
 
 
-async def send_result(bot, chat_id: int, result: "Result | None", reply_markup=MAIN_MENU, photo: bytes | None = None):
+async def send_result(bot, chat_id: int, result: "Result | None", reply_markup=None, photo: bytes | None = None):
     if result is None:
         await bot.send_message(
             chat_id, "⚠️ با این اطلاعات عددی که همهٔ شرط‌ها را داشته باشد پیدا نشد.", reply_markup=reply_markup
@@ -272,22 +285,26 @@ async def send_result(bot, chat_id: int, result: "Result | None", reply_markup=M
     await bot.send_photo(chat_id, photo, caption=result.caption, reply_markup=reply_markup)
 
 
+def miniapp_markup(text: str = "🌙 ورود به مینی اپ") -> InlineKeyboardMarkup | None:
+    url = webapp_url()
+    return InlineKeyboardMarkup([[InlineKeyboardButton(text, web_app=WebAppInfo(url))]]) if url else None
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data.clear()
-    await send_cached(
-        context,
-        update.effective_chat.id,
-        "photo",
-        "welcome.jpg",
-        caption=WELCOME,
-        reply_markup=MAIN_MENU,
-    )
-    url = webapp_url()
-    if url:
-        await update.effective_chat.send_message(
-            "✨ برای تجربهٔ کامل، مینی اپ را باز کنید:",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🌙 ورود به مینی اپ", web_app=WebAppInfo(url))]]),
-        )
+    # وقتی دکمه‌ای در چت نیست، دکمهٔ «ورود به مینی اپ» زیر خود بنر خوش‌آمد می‌آید
+    markup = MAIN_MENU if MENU_BUTTONS else (miniapp_markup() or MAIN_MENU)
+    await send_cached(context, update.effective_chat.id, "photo", "welcome.jpg", caption=WELCOME, reply_markup=markup)
+    if MENU_BUTTONS and miniapp_markup():
+        await update.effective_chat.send_message("✨ برای تجربهٔ کامل، مینی اپ را باز کنید:", reply_markup=miniapp_markup())
+
+
+async def point_to_miniapp(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """هر پیام متنی (مثلاً دکمهٔ قدیمی منو): کیبورد قدیمی پاک و کاربر به مینی اپ هدایت می‌شود."""
+    await update.message.reply_text("👇 همهٔ خدمات داخل مینی اپ است.", reply_markup=ReplyKeyboardRemove())
+    markup = miniapp_markup()
+    if markup:
+        await update.message.reply_text("🌙 برای ورود دکمهٔ زیر را بزنید:", reply_markup=markup)
 
 
 WELCOME = (
@@ -408,7 +425,7 @@ def make_conversation(flow: Flow, text_filter) -> ConversationHandler:
         result = flow.compute(d, user.id)
         if LOADING_SECONDS:
             await asyncio.sleep(LOADING_SECONDS)
-        await send_result(context.bot, query.message.chat_id, result)
+        await send_result(context.bot, query.message.chat_id, result, reply_markup=MAIN_MENU)
         await loading.delete()
         context.user_data.clear()
         return ConversationHandler.END
@@ -483,7 +500,9 @@ def build_app(token: str, **builder_options) -> Application:
     # هر گفت‌وگو در گروه جدا، تا زدن دکمهٔ دیگر منو گفت‌وگوی قبلی را ببندد و بعدی را شروع کند
     app.add_handler(CommandHandler("start", start), group=0)
     app.add_handler(MessageHandler(filters.CONTACT, remember_contact), group=100)
-    for g, flow in enumerate(ACTIVE_FLOWS, start=1):
+    if not BOT_FLOWS:
+        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, point_to_miniapp), group=101)
+    for g, flow in enumerate(BOT_FLOWS, start=1):
         app.add_handler(make_conversation(flow, text), group=g)
     return app
 

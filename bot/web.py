@@ -223,7 +223,8 @@ def compute():
     # نتیجه در چت هم فرستاده می‌شود تا ذخیره بماند
     try:
         photo = render(result.title, result.name, result.items)
-        loop.run_until_complete(send_result(bot_app.bot, user["id"], result, photo=photo))
+        markup = main_module.miniapp_markup("🌙 بازگشت به مینی اپ")
+        loop.run_until_complete(send_result(bot_app.bot, user["id"], result, reply_markup=markup, photo=photo))
         sent = True
     except TelegramError:
         sent = False
