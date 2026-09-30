@@ -10,20 +10,15 @@ LABELS = ("ذکر اول", "ذکر دوم", "ذکر سوم")
 
 @dataclass
 class Person:
-    first_name: str
-    last_name: str
+    full_name: str  # نام و نام خانوادگی با هم
     mother_name: str
     day: int
     month: int
     year: int
 
-    @property
-    def full_name(self) -> str:
-        return f"{self.first_name} {self.last_name}"
-
 
 def numbers(p: Person) -> tuple[int, int, int]:
-    name = abjad(p.first_name) + abjad(p.last_name)
+    name = abjad(p.full_name)  # فاصله‌ها حساب نمی‌شوند
     return name, name + abjad(p.mother_name), date_number(p.day, p.month, p.year)
 
 

@@ -37,7 +37,6 @@ from .zikr import Person, design, zikr_names
 warnings.filterwarnings("ignore", category=PTBUserWarning)
 logging.basicConfig(format="%(asctime)s %(name)s %(levelname)s %(message)s", level=logging.INFO)
 
-VERSION = "۳"
 ROOT = Path(__file__).resolve().parent.parent
 BTN_CANCEL = "❌ انصراف"
 CONFIRM = 100
@@ -114,7 +113,7 @@ GREETING = "با سلام ممنون از اینکه صبوری کردید و م
 
 
 def compute_zikr(d: dict, user_id: int) -> tuple[bytes, str]:
-    person = Person(d["first"], d["last"], d["mother"], *d["date"])
+    person = Person(d["full"], d["mother"], *d["date"])
     names = zikr_names(person)
     subs = ("بر اساس نام و نام خانوادگی", "بر اساس نام، نام خانوادگی و نام مادر", "بر اساس تاریخ تولد")
     items = [(lbl, f"یا {n}", sub) for lbl, n, sub in zip(("ذکر اول", "ذکر دوم", "ذکر سوم"), names, subs)]
@@ -148,6 +147,7 @@ class Flow:
     intro: str
     fields: list[Field]
     compute: Callable[[dict, int], tuple[bytes, str] | None]
+    enabled: bool = True  # False: دکمه در منو نمایش داده نمی‌شود
 
 
 FLOWS = [
@@ -156,12 +156,17 @@ FLOWS = [
         "✨ طراحی ذکر شخصی",
         "✨ طراحی ذکر شخصی",
         [
-            Field("first", "👤 نام", "لطفاً «نام» خود را مطابق شناسنامه و به فارسی وارد کنید:"),
-            Field("last", "👥 نام خانوادگی", "«نام خانوادگی» خود را وارد کنید:"),
+            Field(
+                "full",
+                "👤 نام و نام خانوادگی",
+                "لطفاً «نام و نام خانوادگی» خود را مطابق شناسنامه و به فارسی وارد کنید:",
+                kind="fullname",
+            ),
             Field("mother", "🤱 نام مادر", "«نام مادر» را مطابق شناسنامه وارد کنید:"),
             Field("date", "📅 تاریخ تولد", "«تاریخ تولد» را " + DATE_HELP, kind="date"),
         ],
         compute_zikr,
+        enabled=False,  # موقتاً غیرفعال
     ),
     Flow(
         "pin",
@@ -188,7 +193,8 @@ FLOWS = [
     ),
 ]
 
-MENU_BUTTONS = [f.button for f in FLOWS]
+ACTIVE_FLOWS = [f for f in FLOWS if f.enabled]
+MENU_BUTTONS = [f.button for f in ACTIVE_FLOWS]
 # هر لیست یک ردیف منو است
 MAIN_MENU = ReplyKeyboardMarkup([[b] for b in MENU_BUTTONS], resize_keyboard=True)
 CANCEL_KB = ReplyKeyboardMarkup([[BTN_CANCEL]], resize_keyboard=True)
@@ -200,10 +206,8 @@ CANCEL_KB = ReplyKeyboardMarkup([[BTN_CANCEL]], resize_keyboard=True)
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data.clear()
     await update.message.reply_text(
-        "🌙 به «مینی اپ علم اعداد» خوش آمدید\n\n"
-        "✨ طراحی ذکر شخصی: سه ذکر مخصوص شما بر اساس ابجد\n"
-        "🔐 رمز عابر بانکی: رمز ۴ رقمی و کد کارماسوزی ۷ رقمی\n\n"
-        f"👇 یکی از گزینه‌های منو را انتخاب کنید.\n\nنسخه {VERSION}",
+        "سلام به مینی اپ استاد فاطمه سادات جعفرنیا خوش اومدید 🌙\n\n"
+        "خوشحال هستیم که به ما اعتماد کردید و کنارمون هستید.",
         reply_markup=MAIN_MENU,
     )
 
@@ -362,7 +366,7 @@ def build_app(token: str, **builder_options) -> Application:
     text = filters.TEXT & ~filters.COMMAND & ~filters.Regex(reserved)
     # هر گفت‌وگو در گروه جدا، تا زدن دکمهٔ دیگر منو گفت‌وگوی قبلی را ببندد و بعدی را شروع کند
     app.add_handler(CommandHandler("start", start), group=0)
-    for g, flow in enumerate(FLOWS, start=1):
+    for g, flow in enumerate(ACTIVE_FLOWS, start=1):
         app.add_handler(make_conversation(flow, text), group=g)
     return app
 
