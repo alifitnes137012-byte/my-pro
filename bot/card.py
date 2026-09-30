@@ -9,13 +9,18 @@ import arabic_reshaper
 from bidi.algorithm import get_display
 from PIL import Image, ImageDraw, ImageFont
 
-FONTS = Path(__file__).resolve().parent.parent / "fonts"
+ROOT = Path(__file__).resolve().parent.parent
+FONTS = ROOT / "fonts"
+ASSETS = ROOT / "assets"
+BRAND = "مینی اپ استاد فاطمه سادات جعفرنیا"
 
 W, H = 1080, 1350
-BG_TOP, BG_BOTTOM = (18, 24, 56), (6, 8, 22)
-GOLD, GOLD_SOFT = (232, 196, 110), (170, 140, 80)
-PANEL, PANEL_EDGE = (30, 38, 80), (80, 72, 120)
-WHITE, MUTED = (245, 242, 235), (175, 178, 205)
+# هم‌رنگ بنر: بنفش تیره و طلایی
+BG_TOP, BG_BOTTOM = (62, 24, 88), (14, 6, 26)
+GOLD, GOLD_SOFT = (240, 200, 110), (190, 150, 80)
+PANEL, PANEL_EDGE = (48, 22, 70), (150, 115, 70)
+WHITE, MUTED = (250, 244, 235), (205, 185, 215)
+PATTERN = (80, 40, 105)
 
 
 @lru_cache(maxsize=None)
@@ -23,6 +28,11 @@ def _font(weight: str, size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.truetype(
         str(FONTS / f"Vazirmatn-{weight}.ttf"), size, layout_engine=ImageFont.Layout.BASIC
     )
+
+
+@lru_cache(maxsize=None)
+def _logo(size: int) -> Image.Image:
+    return Image.open(ASSETS / "logo.png").convert("RGBA").resize((size, size), Image.LANCZOS)
 
 
 def _rtl(text: str) -> str:
@@ -55,7 +65,7 @@ def _background() -> Image.Image:
     # ستاره‌های کم‌رنگ پس‌زمینه
     for x in range(0, W + 1, 135):
         for y in range(0, H + 1, 135):
-            _star(draw, x, y, 22, outline=(38, 46, 88), width=1)
+            _star(draw, x, y, 22, outline=PATTERN, width=1)
     return img
 
 
@@ -64,12 +74,12 @@ def render(title: str, full_name: str, items: list[tuple[str, str, str]]) -> byt
     img = _background()
     draw = ImageDraw.Draw(img)
 
-    # سربرگ
-    _star(draw, W // 2, 120, 46, fill=GOLD)
-    _star(draw, W // 2, 120, 22, fill=BG_TOP)
-    _center(draw, 225, title, _font("Black", 64), GOLD)
-    _center(draw, 305, full_name, _font("Bold", 46), WHITE)
-    draw.line([(W // 2 - 220, 360), (W // 2 + 220, 360)], fill=GOLD_SOFT, width=2)
+    # سربرگ: لوگو با حلقهٔ طلایی
+    draw.ellipse([(W // 2 - 86, 34), (W // 2 + 86, 206)], outline=GOLD, width=4)
+    img.paste(_logo(160), (W // 2 - 80, 40), _logo(160))
+    _center(draw, 250, title, _font("Black", 64), GOLD)
+    _center(draw, 322, full_name, _font("Bold", 46), WHITE)
+    draw.line([(W // 2 - 220, 372), (W // 2 + 220, 372)], fill=GOLD_SOFT, width=2)
 
     box_h, gap = 240, 38
     top = 410 + (3 - len(items)) * (box_h + gap) // 2
@@ -83,7 +93,7 @@ def render(title: str, full_name: str, items: list[tuple[str, str, str]]) -> byt
         _center(draw, y0 + 130, value, _font("Black", 76), GOLD)
         _center(draw, y0 + 200, sub, _font("Regular", 26), MUTED)
 
-    _center(draw, H - 70, "مینی اپ علم اعداد", _font("Bold", 30), GOLD_SOFT)
+    _center(draw, H - 70, BRAND, _font("Bold", 30), GOLD_SOFT)
 
     buf = io.BytesIO()
     img.save(buf, "PNG", optimize=True)

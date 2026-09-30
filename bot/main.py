@@ -8,6 +8,7 @@
 کافی است یک Flow به FLOWS اضافه شود.
 """
 
+import asyncio
 import logging
 import os
 import re
@@ -16,7 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -27,10 +28,11 @@ from telegram.ext import (
     PicklePersistence,
     filters,
 )
+from telegram.error import TelegramError
 from telegram.warnings import PTBUserWarning
 
 from .abjad import abjad, to_ascii_digits, unknown_letters
-from .card import render
+from .card import ASSETS, render
 from .pin import PinInput, design_pin, to_gregorian
 from .zikr import Person, design, zikr_names
 
@@ -40,6 +42,7 @@ logging.basicConfig(format="%(asctime)s %(name)s %(levelname)s %(message)s", lev
 ROOT = Path(__file__).resolve().parent.parent
 BTN_CANCEL = "❌ انصراف"
 CONFIRM = 100
+LOADING_SECONDS = 3  # مدت نمایش انیمیشن «در حال محاسبه»
 FA_DIGITS = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
 DATE_HELP = (
     "به شکل سال/ماه/روز شمسی وارد کنید.\n"
@@ -109,18 +112,26 @@ def show(field: Field, value) -> str:
 
 # ───────────────────────── محاسبه‌ها ─────────────────────────
 
+@dataclass
+class Result:
+    title: str
+    name: str
+    items: list[tuple[str, str, str]]  # (عنوان، مقدار، زیرنویس)
+    caption: str
+
+
 GREETING = "با سلام ممنون از اینکه صبوری کردید و منتظر موندید. خدمت شما:"
 
 
-def compute_zikr(d: dict, user_id: int) -> tuple[bytes, str]:
+def compute_zikr(d: dict, user_id: int) -> Result:
     person = Person(d["full"], d["mother"], *d["date"])
     names = zikr_names(person)
     subs = ("بر اساس نام و نام خانوادگی", "بر اساس نام، نام خانوادگی و نام مادر", "بر اساس تاریخ تولد")
     items = [(lbl, f"یا {n}", sub) for lbl, n, sub in zip(("ذکر اول", "ذکر دوم", "ذکر سوم"), names, subs)]
-    return render("ذکرهای شخصی شما", person.full_name, items), design(person, names)
+    return Result("ذکرهای شخصی شما", person.full_name, items, design(person, names))
 
 
-def compute_pin(d: dict, user_id: int) -> tuple[bytes, str] | None:
+def compute_pin(d: dict, user_id: int) -> Result | None:
     p = PinInput(d["full"], d.get("called") or "", *d["date"], d["father"], d["mother"])
     result = design_pin(p, user_id)
     if not result:
@@ -137,7 +148,7 @@ def compute_pin(d: dict, user_id: int) -> tuple[bytes, str] | None:
         ("رمز بانکی ۴ رقمی", " ".join(pin), "پول راحت، زیاد و ماندگار"),
         ("کد کارماسوزی ۷ رقمی", " ".join(karma), "سبک‌سازی مسیر پول"),
     ]
-    return render("رمزهای مالی شما", p.full_name, items), caption
+    return Result("رمزهای مالی شما", p.full_name, items, caption)
 
 
 @dataclass
@@ -146,7 +157,7 @@ class Flow:
     button: str
     intro: str
     fields: list[Field]
-    compute: Callable[[dict, int], tuple[bytes, str] | None]
+    compute: Callable[[dict, int], Result | None]
     enabled: bool = True  # False: دکمه در منو نمایش داده نمی‌شود
 
 
@@ -203,13 +214,54 @@ CANCEL_KB = ReplyKeyboardMarkup([[BTN_CANCEL]], resize_keyboard=True)
 # ───────────────────────── گفت‌وگو ─────────────────────────
 
 
+async def send_cached(context, chat_id: int, kind: str, filename: str, **kwargs):
+    """فایل‌های ثابت (بنر، انیمیشن) یک بار آپلود می‌شوند و بعد با file_id فرستاده می‌شوند."""
+    cache = context.bot_data.setdefault("file_ids", {})
+    send = getattr(context.bot, f"send_{kind}")
+    if filename in cache:
+        try:
+            return await send(chat_id, cache[filename], **kwargs)
+        except TelegramError:
+            cache.pop(filename)
+    with open(ASSETS / filename, "rb") as f:
+        msg = await send(chat_id, f, **kwargs)
+    attachment = getattr(msg, kind)
+    cache[filename] = (attachment[-1] if isinstance(attachment, tuple) else attachment).file_id
+    return msg
+
+
+async def send_result(bot, chat_id: int, result: "Result | None", reply_markup=MAIN_MENU):
+    if result is None:
+        await bot.send_message(
+            chat_id, "⚠️ با این اطلاعات عددی که همهٔ شرط‌ها را داشته باشد پیدا نشد.", reply_markup=reply_markup
+        )
+        return
+    photo = render(result.title, result.name, result.items)
+    await bot.send_photo(chat_id, photo, caption=result.caption, reply_markup=reply_markup)
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data.clear()
-    await update.message.reply_text(
-        "سلام به مینی اپ استاد فاطمه سادات جعفرنیا خوش اومدید 🌙\n\n"
-        "خوشحال هستیم که به ما اعتماد کردید و کنارمون هستید.",
+    await send_cached(
+        context,
+        update.effective_chat.id,
+        "photo",
+        "welcome.jpg",
+        caption=WELCOME,
         reply_markup=MAIN_MENU,
     )
+    url = webapp_url()
+    if url:
+        await update.effective_chat.send_message(
+            "✨ برای تجربهٔ کامل، مینی اپ را باز کنید:",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🌙 ورود به مینی اپ", web_app=WebAppInfo(url))]]),
+        )
+
+
+WELCOME = (
+    "سلام به مینی اپ استاد فاطمه سادات جعفرنیا خوش اومدید 🌙\n\n"
+    "خوشحال هستیم که به ما اعتماد کردید و کنارمون هستید."
+)
 
 
 def _summary(flow: Flow, d: dict, footer: str = "اگر درست است «ارسال» را بزنید.") -> str:
@@ -306,16 +358,12 @@ def make_conversation(flow: Flow, text_filter) -> ConversationHandler:
             await query.edit_message_reply_markup(None)
             return await cancel(update, context)
 
-        await query.edit_message_text("⏳ در حال محاسبه، لطفاً کمی صبر کنید...")
-        result = flow.compute(d, update.effective_user.id)
-        if result is None:
-            await query.message.reply_text(
-                "⚠️ با این اطلاعات عددی که همهٔ شرط‌ها را داشته باشد پیدا نشد.", reply_markup=MAIN_MENU
-            )
-        else:
-            photo, caption = result
-            await query.message.reply_photo(photo, caption=caption, reply_markup=MAIN_MENU)
         await query.delete_message()
+        loading = await send_cached(context, query.message.chat_id, "animation", "loading.gif")
+        result = flow.compute(d, update.effective_user.id)
+        await asyncio.sleep(LOADING_SECONDS)
+        await send_result(context.bot, query.message.chat_id, result)
+        await loading.delete()
         context.user_data.clear()
         return ConversationHandler.END
 
@@ -349,6 +397,12 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data.clear()
     await update.effective_message.reply_text("لغو شد. به منوی اصلی برگشتید.", reply_markup=MAIN_MENU)
     return ConversationHandler.END
+
+
+def webapp_url() -> str | None:
+    """آدرس مینی اپ؛ بعد از باز کردن /setup روی سرور در webapp_url.txt ذخیره می‌شود."""
+    path = ROOT / "webapp_url.txt"
+    return os.environ.get("WEBAPP_URL") or (path.read_text().strip() if path.exists() else None)
 
 
 def load_token() -> str:
