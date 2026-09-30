@@ -59,28 +59,28 @@ def _background() -> Image.Image:
     return img
 
 
-def render(full_name: str, names: list[str]) -> bytes:
+def render(title: str, full_name: str, items: list[tuple[str, str, str]]) -> bytes:
+    """items: [(عنوان، مقدار اصلی، زیرنویس)] — سه مورد جا می‌شود."""
     img = _background()
     draw = ImageDraw.Draw(img)
 
     # سربرگ
     _star(draw, W // 2, 120, 46, fill=GOLD)
     _star(draw, W // 2, 120, 22, fill=BG_TOP)
-    _center(draw, 225, "ذکرهای شخصی شما", _font("Black", 64), GOLD)
+    _center(draw, 225, title, _font("Black", 64), GOLD)
     _center(draw, 305, full_name, _font("Bold", 46), WHITE)
     draw.line([(W // 2 - 220, 360), (W // 2 + 220, 360)], fill=GOLD_SOFT, width=2)
 
-    labels = ("ذکر اول", "ذکر دوم", "ذکر سوم")
-    subtitles = ("بر اساس نام و نام خانوادگی", "بر اساس نام، نام خانوادگی و نام مادر", "بر اساس تاریخ تولد")
-    top, box_h, gap = 410, 240, 38
-    for i, (label, sub, name) in enumerate(zip(labels, subtitles, names)):
+    box_h, gap = 240, 38
+    top = 410 + (3 - len(items)) * (box_h + gap) // 2
+    for i, (label, value, sub) in enumerate(items):
         y0 = top + i * (box_h + gap)
         draw.rounded_rectangle(
             [(90, y0), (W - 90, y0 + box_h)], radius=36, fill=PANEL, outline=PANEL_EDGE, width=3
         )
         _star(draw, W - 90, y0 + box_h // 2, 30, fill=GOLD)
         _center(draw, y0 + 52, label, _font("Bold", 34), MUTED)
-        _center(draw, y0 + 130, f"یا {name}", _font("Black", 76), GOLD)
+        _center(draw, y0 + 130, value, _font("Black", 76), GOLD)
         _center(draw, y0 + 200, sub, _font("Regular", 26), MUTED)
 
     _center(draw, H - 70, "مینی اپ علم اعداد", _font("Bold", 30), GOLD_SOFT)
