@@ -31,7 +31,7 @@
    ```python
    import sys
    sys.path.insert(0, "/home/USERNAME/my-pro")
-   from bot.web import app as application
+   from pa_wsgi import application
    ```
 6. دکمهٔ **Save** را بزنید. بعد به تب **Web** برگردید و دکمهٔ سبز **Reload** را بزنید.
 
