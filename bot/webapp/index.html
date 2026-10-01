@@ -166,6 +166,74 @@ select {
 .card-img { width: 100%; border-radius: 18px; margin-top: 8px; border: 1px solid var(--panel-edge); }
 .sent { text-align: center; color: var(--muted); font-size: 13px; margin: 10px 0 0; }
 .greeting { text-align: center; line-height: 2; color: var(--muted); margin: 0 0 16px; }
+
+/* ───── چالش ۱۰ روزه ───── */
+.featured {
+  display: block; width: 100%; padding: 20px 18px; margin-bottom: 16px; color: inherit; font: inherit; text-align: right;
+  cursor: pointer; position: relative; overflow: hidden; border-color: var(--gold);
+  background: linear-gradient(135deg, rgba(240, 200, 110, .2), rgba(58, 26, 84, .6) 55%);
+  box-shadow: 0 0 0 1px rgba(240, 200, 110, .4), 0 12px 34px rgba(240, 200, 110, .18);
+}
+.featured:active { transform: scale(.98); }
+.featured .tag { position: absolute; top: 14px; left: 14px; font-size: 12px; font-weight: 700; color: #2a1238;
+  background: var(--gold-grad); padding: 3px 10px; border-radius: 99px; }
+.featured .big { font-size: 34px; }
+.featured b { display: block; font-size: 21px; font-weight: 900; color: var(--gold-light); margin: 6px 0 4px; }
+.featured small { color: var(--muted); font-size: 13.5px; line-height: 1.9; }
+.featured .go { display: inline-block; margin-top: 10px; color: var(--gold); font-weight: 700; font-size: 14px; }
+.section-title { color: var(--muted); font-size: 13px; margin: 6px 4px 10px; }
+
+.ch-head { text-align: center; margin: 0 0 16px; }
+.ch-head h2 { margin: 8px 0 2px; font-size: 23px; font-weight: 900; background: var(--gold-grad);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ch-head .who { margin: 0; font-weight: 700; }
+.ch-intro { color: var(--muted); line-height: 2; font-size: 14px; text-align: center; margin: 0 0 16px; }
+.progress { padding: 14px 16px; margin-bottom: 16px; }
+.progress .row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; }
+.progress .row b { color: var(--gold); }
+.bar { height: 10px; border-radius: 99px; background: rgba(14, 6, 26, .6); overflow: hidden; border: 1px solid var(--panel-edge); }
+.bar i { display: block; height: 100%; width: 0; background: var(--gold-grad); border-radius: 99px; transition: width .8s ease; }
+
+.day { display: flex; gap: 12px; align-items: flex-start; padding: 14px; margin-bottom: 10px; width: 100%;
+  color: inherit; font: inherit; text-align: right; cursor: pointer; position: relative; }
+.day .num { flex: none; width: 50px; height: 50px; border-radius: 15px; display: grid; place-items: center; font-size: 24px;
+  border: 1px solid var(--panel-edge); background: radial-gradient(circle at 30% 30%, rgba(255, 241, 196, .22), rgba(184, 134, 47, .12)); }
+.day .body { flex: 1; min-width: 0; }
+.day .dn { color: var(--gold); font-size: 12px; font-weight: 700; }
+.day b { display: block; font-size: 16.5px; color: var(--gold-light); margin: 1px 0 3px; }
+.day small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.8; }
+.day small.need { opacity: .8; }
+.badge { display: inline-block; margin-top: 8px; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 99px;
+  border: 1px solid var(--panel-edge); color: var(--muted); }
+.day.done .badge { color: #9fe3b0; border-color: rgba(159, 227, 176, .45); }
+.day.open { border-color: var(--gold); animation: pulse 2.4s ease-in-out infinite; }
+.day.open .badge { color: #2a1238; background: var(--gold-grad); border: 0; }
+.day.wait .badge { color: var(--gold); }
+.day.locked { opacity: .62; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 1px var(--gold), 0 0 26px rgba(240, 200, 110, .35); } }
+
+.choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice { flex: 1 1 auto; min-width: 30%; padding: 10px 12px; border-radius: 14px; cursor: pointer; font: inherit; font-size: 14.5px;
+  color: var(--text); background: rgba(14, 6, 26, .55); border: 1px solid rgba(240, 200, 110, .25); transition: all .15s; }
+.choice.on { color: #1a0826; font-weight: 900; background: var(--gold-grad); border-color: transparent; }
+.field.invalid .choices .choice { border-color: var(--danger); }
+.info-box { padding: 16px; margin-bottom: 12px; color: var(--muted); line-height: 2; text-align: center; }
+
+.notes { padding: 16px 18px; margin-bottom: 14px; line-height: 2.1; font-size: 15px; }
+.notes p { margin: 0 0 6px; }
+.notes p:last-child { margin: 0; }
+.media { padding: 16px; margin-bottom: 14px; text-align: center; }
+.media .soon { color: var(--muted); font-size: 13px; margin-top: 6px; }
+.media .btn { margin-top: 10px; }
+.cta { position: relative; padding: 20px 18px 18px; margin: 18px 0 6px; border-radius: 22px; text-align: center; line-height: 2.1;
+  border: 1.5px dashed var(--gold); background: rgba(240, 200, 110, .1); font-weight: 700; color: var(--gold-light); }
+.cta .icon { position: absolute; top: -18px; right: 50%; transform: translateX(50%); font-size: 22px; width: 36px; height: 36px;
+  display: grid; place-items: center; border-radius: 50%; background: #2a1040; border: 1px solid var(--gold); }
+.cta .timer { display: block; margin-top: 8px; color: var(--muted); font-weight: 400; font-size: 13.5px; }
+.cta .timer b { color: var(--gold); direction: ltr; display: inline-block; }
+.demo-note { text-align: center; font-size: 12px; color: var(--muted); opacity: .8; margin: 0 0 12px; }
+.finish { text-align: center; padding: 20px; margin-bottom: 14px; }
+.finish .big { font-size: 40px; }
 </style>
 </head>
 <body>
@@ -181,7 +249,74 @@ select {
       <div class="divider"><span>✦</span></div>
       <p class="welcome">سلام، خوش اومدید 🌙<br>خوشحال هستیم که به ما اعتماد کردید و کنارمون هستید.</p>
     </div>
+    <button class="featured panel" id="ch-entry">
+      <span class="tag">جدید</span>
+      <span class="big">💰</span>
+      <b>چالش ۱۰ روزه جذب ثروت</b>
+      <small>هر روز یک قدم: ارتعاش اسم، شانس، سیارات، زودیاک، چاکرا، کارما و گنج‌نامهٔ خواسته‌ات</small>
+      <span class="go" id="ch-entry-go">شروع چالش ‹</span>
+    </button>
+    <p class="section-title">✦ خدمات</p>
     <div id="services"></div>
+  </section>
+
+  <!-- چالش: ثبت‌نام -->
+  <section class="view" id="ch-register">
+    <div class="ch-head">
+      <div class="logo" style="width:78px;height:78px"></div>
+      <h2>چالش ۱۰ روزه جذب ثروت</h2>
+    </div>
+    <p class="ch-intro" id="ch-reg-intro"></p>
+    <form id="ch-reg-fields" novalidate></form>
+    <button class="btn" id="ch-reg-submit">🚀 ثبت‌نام و شروع چالش</button>
+    <p class="notice" id="ch-reg-error"></p>
+  </section>
+
+  <!-- چالش: مسیر ۱۰ روزه (دمو) -->
+  <section class="view" id="ch-map">
+    <div class="ch-head">
+      <div class="logo" style="width:70px;height:70px"></div>
+      <h2>چالش ۱۰ روزه جذب ثروت</h2>
+      <p class="who" id="ch-who"></p>
+    </div>
+    <div class="progress panel">
+      <div class="row"><span>پیشرفت شما</span><b id="ch-count"></b></div>
+      <div class="bar"><i id="ch-bar"></i></div>
+    </div>
+    <p class="ch-intro" id="ch-intro"></p>
+    <p class="section-title">✦ در این ۱۰ روز چه چیزهایی دریافت می‌کنی؟</p>
+    <div id="ch-days"></div>
+    <button class="btn ghost" data-go="home">🏠 بازگشت به خانه</button>
+  </section>
+
+  <!-- چالش: ورودی روز -->
+  <section class="view" id="ch-day">
+    <div class="ch-head">
+      <div class="logo" style="width:70px;height:70px"></div>
+      <h2 id="ch-day-title"></h2>
+      <p class="who" style="color:var(--muted);font-weight:400;font-size:14px" id="ch-day-gets"></p>
+    </div>
+    <form id="ch-day-fields" novalidate></form>
+    <button class="btn" id="ch-day-submit">✨ دریافت نتیجهٔ امروز</button>
+    <p class="notice" id="ch-day-error"></p>
+  </section>
+
+  <!-- چالش: نتیجهٔ روز -->
+  <section class="view" id="ch-result">
+    <div class="ch-head">
+      <div class="logo" style="width:70px;height:70px"></div>
+      <h2 id="ch-res-title"></h2>
+      <p class="who" id="ch-res-name"></p>
+    </div>
+    <p class="greeting">با سلام ممنون از اینکه صبوری کردید و منتظر موندید. خدمت شما:</p>
+    <p class="demo-note" id="ch-res-demo">🔧 نمونهٔ نمایشی — فرمول نهایی به‌زودی اضافه می‌شود</p>
+    <div id="ch-res-items"></div>
+    <div class="notes panel" id="ch-res-notes"></div>
+    <div id="ch-res-media"></div>
+    <div class="cta" id="ch-res-cta"><span class="icon">📣</span><span id="ch-res-cta-text"></span>
+      <span class="timer" id="ch-res-timer"></span></div>
+    <p class="sent" id="ch-res-sent"></p>
+    <button class="btn" data-go="ch-map">🗺 مسیر چالش</button>
   </section>
 
   <!-- فرم -->
@@ -267,7 +402,12 @@ function show(view) {
   window.scrollTo(0, 0);
   if (tg) view === "home" ? tg.BackButton.hide() : tg.BackButton.show();
 }
-if (tg) tg.BackButton.onClick(() => show($("result").classList.contains("active") ? "form" : "home"));
+const PARENT = { form: "home", result: "form", "ch-register": "home", "ch-map": "home", "ch-day": "ch-map", "ch-result": "ch-map" };
+if (tg) tg.BackButton.onClick(() => {
+  const to = PARENT[document.querySelector(".view.active").id] || "home";
+  if (to === "ch-map") renderMap();
+  show(to);
+});
 
 async function load() {
   flows = await (await fetch("api/flows")).json();
@@ -337,7 +477,7 @@ function openFlow(f) {
 function collect() {
   const values = {};
   current.fields.forEach((x) => {
-    const box = document.querySelector(`.field[data-key="${x.key}"]`);
+    const box = document.querySelector(`#form .field[data-key="${x.key}"]`);
     if (x.kind === "date") {
       const p = (k) => box.querySelector(`[data-part="${k}"]`).value;
       values[x.key] = p("y") && p("m") && p("d") ? `${p("y")}/${p("m")}/${p("d")}` : "";
@@ -348,12 +488,12 @@ function collect() {
 }
 
 function showErrors(errors) {
-  document.querySelectorAll(".field").forEach((box) => {
+  document.querySelectorAll(".view.active .field").forEach((box) => {
     const e = errors[box.dataset.key];
     box.classList.toggle("invalid", !!e);
     box.querySelector(".error").textContent = e || "";
   });
-  const first = document.querySelector(".field.invalid");
+  const first = document.querySelector(".view.active .field.invalid");
   if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
@@ -406,6 +546,251 @@ $("submit").onclick = async (ev) => {
   $("sent").textContent = data.sent ? "📩 نتیجه در چت ربات هم برای شما ارسال شد." : "برای ذخیره، روی تصویر نگه دارید.";
   show("result");
 };
+
+
+// ───────────────────────── چالش ۱۰ روزه ─────────────────────────
+const STATE_TEXT = { done: "✅ انجام شد — دیدن نتیجه", open: "🔓 امروز باز است — شروع", locked: "🔒 بعد از انجام روز قبل باز می‌شود" };
+let ch = null, chDay = null, chLoaded = 0;
+
+const api = async (path, extra = {}) => {
+  try {
+    const res = await fetch(path, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initData: tg ? tg.initData : "", ...extra }),
+    });
+    return await res.json();
+  } catch (e) { return { ok: false, error: "ارتباط برقرار نشد، دوباره تلاش کنید." }; }
+};
+const clock = (s) => {
+  s = Math.max(0, Math.round(s));
+  const p = (n) => String(n).padStart(2, "0");
+  return fa(`${p(Math.floor(s / 3600))}:${p(Math.floor(s / 60) % 60)}:${p(s % 60)}`);
+};
+const left = (d) => d.seconds - (Date.now() - chLoaded) / 1000;
+
+function phoneButton(box, err) {
+  const btn = document.createElement("button");
+  btn.type = "button"; btn.className = "btn ghost share"; btn.textContent = "📱 ارسال شمارهٔ من";
+  btn.onclick = () => {
+    if (!tg || !tg.requestContact) { err.textContent = "لطفاً تلگرام را به‌روز کنید."; box.classList.add("invalid"); return; }
+    tg.requestContact((shared, res) => {
+      if (!shared) { box.classList.add("invalid"); err.textContent = "برای ادامه، ارسال شماره لازم است."; return; }
+      const phone = res && res.responseUnsafe && res.responseUnsafe.contact && res.responseUnsafe.contact.phone_number;
+      box.dataset.ok = "1"; box.classList.remove("invalid");
+      btn.textContent = "✅ " + (phone ? fa(phone.replace(/^\+?98/, "0")) : "شماره ارسال شد");
+      btn.disabled = true; haptic("success");
+    });
+  };
+  return btn;
+}
+
+function question(q, form) {
+  const box = document.createElement("div");
+  box.className = "field panel"; box.dataset.key = q.key;
+  box.innerHTML = `<label>${q.label}</label>${q.hint ? `<p class="hint">${q.hint}</p>` : ""}<div class="error"></div>`;
+  const err = box.querySelector(".error");
+  let el;
+  if (q.kind === "phone") el = phoneButton(box, err);
+  else if (q.kind === "choice") {
+    el = document.createElement("div"); el.className = "choices";
+    q.options.forEach((o, i) => {
+      const c = document.createElement("button");
+      c.type = "button"; c.className = "choice"; c.textContent = o;
+      c.onclick = () => {
+        el.querySelectorAll(".choice").forEach((x) => x.classList.remove("on"));
+        c.classList.add("on"); box.dataset.value = i; box.classList.remove("invalid");
+        try { tg.HapticFeedback.selectionChanged(); } catch (e) {}
+      };
+      el.append(c);
+    });
+  } else if (q.kind === "month" || q.kind === "year") {
+    el = document.createElement("select");
+    el.append(option("", q.kind === "month" ? "ماه را انتخاب کنید" : "سال را انتخاب کنید"));
+    if (q.kind === "month") MONTHS.forEach((n, i) => el.append(option(i + 1, n)));
+    else for (let i = 1404; i >= 1300; i--) el.append(option(i, fa(i)));
+  } else if (q.kind === "date") {
+    el = document.createElement("div"); el.className = "date";
+    const d = document.createElement("select"), m = document.createElement("select"), y = document.createElement("select");
+    d.append(option("", "روز")); for (let i = 1; i <= 31; i++) d.append(option(i, fa(i)));
+    m.append(option("", "ماه")); MONTHS.forEach((n, i) => m.append(option(i + 1, n)));
+    y.append(option("", "سال")); for (let i = 1404; i >= 1300; i--) y.append(option(i, fa(i)));
+    d.dataset.part = "d"; m.dataset.part = "m"; y.dataset.part = "y";
+    el.append(d, m, y);
+  } else {
+    el = document.createElement("input");
+    el.type = "text"; el.autocomplete = "off";
+    el.placeholder = q.kind === "fullname" ? "مثلاً: علی صادقی" : q.label;
+    if (q.prefill === "name" && ch) el.value = ch.name;
+  }
+  box.insertBefore(el, err);
+  form.appendChild(box);
+}
+
+function answers(qs) {
+  const values = {}, missing = {};
+  qs.forEach((q) => {
+    const box = document.querySelector(`.view.active .field[data-key="${q.key}"]`);
+    let v = "";
+    if (q.kind === "choice") v = box.dataset.value ?? "";
+    else if (q.kind === "phone") v = box.dataset.ok ? "shared" : "";
+    else if (q.kind === "date") {
+      const p = (k) => box.querySelector(`[data-part="${k}"]`).value;
+      v = p("y") && p("m") && p("d") ? `${p("y")}/${p("m")}/${p("d")}` : "";
+    } else v = box.querySelector("input, select").value.trim();
+    values[q.key] = v;
+    if (v === "") missing[q.key] = q.kind === "choice" ? "یک گزینه را انتخاب کنید" : q.kind === "phone" ? "شماره را ارسال کنید" : "این بخش را پر کنید";
+  });
+  return { values, missing };
+}
+
+async function withLoader(promise) {
+  $("loader").classList.add("active");
+  const started = Date.now(), data = await promise;
+  await new Promise((r) => setTimeout(r, Math.max(0, 2600 - (Date.now() - started))));
+  $("loader").classList.remove("active");
+  return data;
+}
+
+async function openChallenge() {
+  $("ch-entry-go").textContent = "در حال باز شدن...";
+  const data = await api("api/challenge");
+  $("ch-entry-go").textContent = "ورود به چالش ‹";
+  if (!data.ok) { alert(data.error || "خطایی رخ داد."); return; }
+  ch = data; chLoaded = Date.now();
+  if (!ch.registered) {
+    $("ch-reg-intro").textContent = ch.intro;
+    $("ch-reg-error").textContent = "";
+    const form = $("ch-reg-fields"); form.innerHTML = "";
+    question({ key: "full", label: "نام و نام خانوادگی", kind: "fullname", hint: "به فارسی و مطابق شناسنامه" }, form);
+    question({ key: "phone", label: "شماره همراه", kind: "phone", hint: "دکمه را بزنید و در پنجرهٔ تلگرام ارسال شماره را تأیید کنید" }, form);
+    show("ch-register");
+  } else { renderMap(); show("ch-map"); }
+}
+
+$("ch-reg-submit").onclick = async (ev) => {
+  ev.preventDefault();
+  const qs = [{ key: "full", kind: "fullname" }, { key: "phone", kind: "phone" }];
+  const { values, missing } = answers(qs);
+  showErrors(missing);
+  if (Object.keys(missing).length) { haptic("error"); return; }
+  const data = await api("api/challenge/register", { full: values.full });
+  if (!data.ok) { haptic("error"); data.errors ? showErrors(data.errors) : ($("ch-reg-error").textContent = data.error); return; }
+  haptic("success");
+  await openChallenge();
+};
+
+function renderMap() {
+  $("ch-who").textContent = "👤 " + ch.name;
+  $("ch-intro").textContent = ch.intro;
+  const done = ch.days.filter((d) => d.state === "done").length;
+  $("ch-count").textContent = `${fa(done)} از ${fa(10)} روز`;
+  setTimeout(() => ($("ch-bar").style.width = done * 10 + "%"), 60);
+  const list = $("ch-days"); list.innerHTML = "";
+  ch.days.forEach((d) => {
+    const b = document.createElement("button");
+    b.className = `day panel ${d.state}`;
+    b.innerHTML = `<span class="num">${d.icon}</span><span class="body">
+      <span class="dn">روز ${fa(d.n)}</span><b>${d.title}</b>
+      <small>🎁 ${d.gets}</small><small class="need">✍️ ورودی: ${d.needs}</small>
+      <span class="badge" ${d.state === "wait" ? `data-wait="${d.n}"` : ""}>${STATE_TEXT[d.state] || ""}</span></span>`;
+    b.onclick = () => {
+      if (d.state === "done") showResult(d.result, false);
+      else if (d.state === "open") openDay(d);
+      else { haptic("warning"); b.animate([{ transform: "translateX(0)" }, { transform: "translateX(6px)" }, { transform: "translateX(-6px)" }, { transform: "translateX(0)" }], 300); }
+    };
+    list.append(b);
+  });
+  if (ch.days.every((d) => d.state === "done")) {
+    const f = document.createElement("div");
+    f.className = "finish panel";
+    f.innerHTML = '<div class="big">🏆</div><b style="color:var(--gold)">تبریک! هر ۱۰ روز چالش رو کامل کردی.</b>';
+    list.prepend(f);
+  }
+  tick();
+}
+
+function openDay(d) {
+  chDay = d;
+  $("ch-day-title").textContent = `${d.icon} روز ${fa(d.n)}: ${d.title}`;
+  $("ch-day-gets").textContent = "🎁 " + d.gets;
+  $("ch-day-error").textContent = "";
+  const form = $("ch-day-fields"); form.innerHTML = "";
+  if (!d.questions.length) {
+    form.innerHTML = `<div class="info-box panel">✨ ${d.needs}.<br>فقط دکمهٔ زیر را بزنید.</div>`;
+  }
+  d.questions.forEach((q) => question(q, form));
+  show("ch-day");
+}
+
+$("ch-day-submit").onclick = async (ev) => {
+  ev.preventDefault();
+  $("ch-day-error").textContent = "";
+  const { values, missing } = answers(chDay.questions);
+  showErrors(missing);
+  if (Object.keys(missing).length) { haptic("error"); return; }
+  const data = await withLoader(api("api/challenge/day", { day: chDay.n, values }));
+  if (!data.ok) {
+    haptic("error");
+    data.errors ? showErrors(data.errors) : ($("ch-day-error").textContent = data.error || "خطایی رخ داد.");
+    return;
+  }
+  haptic("success");
+  ch.days = data.days; chLoaded = Date.now();
+  showResult(data.result, true, data.sent);
+};
+
+function showResult(r, fresh, sent) {
+  $("ch-res-title").textContent = r.title;
+  $("ch-res-name").textContent = ch.name;
+  $("ch-res-demo").style.display = r.demo ? "" : "none";
+  const items = $("ch-res-items"); items.innerHTML = "";
+  r.items.forEach((it) => {
+    const isCode = /^\d{3,}$/.test(it.value);
+    const card = document.createElement("div");
+    card.className = "result-card panel";
+    card.innerHTML = `<div class="lbl">${it.label}</div>
+      <div class="val ${isCode ? "" : "words"}">${isCode ? it.value : fa(it.value)}</div>
+      <div class="sub">${it.sub}</div>${isCode ? '<button class="copy">کپی</button>' : ""}`;
+    const btn = card.querySelector(".copy");
+    if (btn) btn.onclick = () => navigator.clipboard.writeText(it.value).then(() => { btn.textContent = "کپی شد ✓"; haptic("success"); });
+    items.append(card);
+  });
+  $("ch-res-notes").innerHTML = (r.notes || []).map((n) => `<p>${n}</p>`).join("");
+  $("ch-res-notes").style.display = r.notes && r.notes.length ? "" : "none";
+  const media = $("ch-res-media"); media.innerHTML = "";
+  ["video", "order"].forEach((k) => {
+    if (!r[k]) return;
+    const box = document.createElement("div"); box.className = "media panel";
+    box.innerHTML = r[k].url
+      ? `<button class="btn ${k === "video" ? "ghost" : ""}">${r[k].title}</button>`
+      : `<b style="color:var(--gold)">${r[k].title}</b><div class="soon">لینک به‌زودی اضافه می‌شود</div>`;
+    const b = box.querySelector("button");
+    if (b) b.onclick = () => (tg && r[k].url.includes("t.me/") ? tg.openTelegramLink(r[k].url) : tg ? tg.openLink(r[k].url) : window.open(r[k].url));
+    media.append(box);
+  });
+  const next = ch.days.find((d) => d.n === r.day + 1);
+  $("ch-res-cta").style.display = r.cta ? "" : "none";
+  $("ch-res-cta-text").textContent = r.cta;
+  $("ch-res-timer").innerHTML = next && next.state === "wait" ? `روز بعد تا <b data-wait="${next.n}"></b> دیگه باز می‌شه` : next && next.state === "open" ? "🔓 روز بعد باز است" : "";
+  $("ch-res-sent").textContent = fresh ? (sent ? "📩 نتیجه در چت ربات هم برای شما ارسال شد." : "") : "";
+  tick();
+  show("ch-result");
+}
+
+function tick() {
+  if (!ch) return;
+  let reload = false;
+  document.querySelectorAll("[data-wait]").forEach((el) => {
+    const d = ch.days.find((x) => x.n === +el.dataset.wait), s = left(d);
+    if (s <= 0) reload = true;
+    const t = clock(s);
+    el.textContent = el.classList.contains("badge") ? `⏳ ${t} تا باز شدن` : t;
+  });
+  if (reload && $("ch-map").classList.contains("active") && Date.now() - chLoaded > 5000) openChallenge();
+}
+setInterval(tick, 1000);
+$("ch-entry").onclick = openChallenge;
+document.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => { if (b.dataset.go === "ch-map") renderMap(); show(b.dataset.go); }));
 
 $("edit").onclick = () => show("form");
 $("again").onclick = () => show("home");
