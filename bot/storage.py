@@ -1,0 +1,62 @@
+"""ذخیرهٔ اطلاعات تماس در یک فایل SQLite (data.sqlite3 کنار پروژه).
+
+فقط «نام و نام خانوادگی» و «شماره همراه» ذخیره می‌شود؛ برای اطلاع‌رسانی رویدادها.
+شماره‌ها فقط از دکمهٔ «ارسال شمارهٔ من» تلگرام می‌آیند و جدا نگه داشته می‌شوند
+تا مینی اپ هم بتواند از شمارهٔ تأییدشدهٔ هر کاربر استفاده کند.
+"""
+
+import sqlite3
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+DB = ROOT / "data.sqlite3"
+TEHRAN = timezone(timedelta(hours=3, minutes=30))
+
+
+def _connect() -> sqlite3.Connection:
+    con = sqlite3.connect(DB, timeout=10)
+    con.execute(
+        """CREATE TABLE IF NOT EXISTS contacts (
+            id INTEGER PRIMARY KEY,
+            created TEXT NOT NULL,   -- زمان تهران، ISO
+            full_name TEXT NOT NULL,
+            phone TEXT NOT NULL
+        )"""
+    )
+    con.execute(
+        """CREATE TABLE IF NOT EXISTS verified_phones (
+            user_id INTEGER PRIMARY KEY,
+            phone TEXT NOT NULL
+        )"""
+    )
+    return con
+
+
+def save_record(full_name: str, phone: str) -> None:
+    with _connect() as con:
+        con.execute(
+            "INSERT INTO contacts (created, full_name, phone) VALUES (?, ?, ?)",
+            (datetime.now(TEHRAN).isoformat(timespec="seconds"), full_name, phone),
+        )
+
+
+def records_for_day(day: str) -> list[dict]:
+    """day به شکل YYYY-MM-DD (میلادی، به وقت تهران). هر شماره فقط یک بار (آخرین نام ثبت‌شده)."""
+    with _connect() as con:
+        rows = con.execute(
+            "SELECT full_name, phone FROM contacts WHERE created LIKE ? ORDER BY id", (f"{day}%",)
+        ).fetchall()
+    unique = {phone: name for name, phone in rows}
+    return [{"full": name, "phone": phone} for phone, name in unique.items()]
+
+
+def save_phone(user_id: int, phone: str) -> None:
+    with _connect() as con:
+        con.execute("INSERT OR REPLACE INTO verified_phones (user_id, phone) VALUES (?, ?)", (user_id, phone))
+
+
+def get_phone(user_id: int) -> str | None:
+    with _connect() as con:
+        row = con.execute("SELECT phone FROM verified_phones WHERE user_id = ?", (user_id,)).fetchone()
+    return row[0] if row else None

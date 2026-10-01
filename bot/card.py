@@ -1,0 +1,102 @@
+"""ساخت کارت تصویری نتیجهٔ ذکر شخصی (PNG)."""
+
+import io
+import math
+from functools import lru_cache
+from pathlib import Path
+
+import arabic_reshaper
+from bidi.algorithm import get_display
+from PIL import Image, ImageDraw, ImageFont
+
+ROOT = Path(__file__).resolve().parent.parent
+FONTS = ROOT / "fonts"
+ASSETS = ROOT / "assets"
+BRAND = "مینی اپ استاد فاطمه سادات جعفرنیا"
+
+W, H = 1080, 1350
+# هم‌رنگ بنر: بنفش تیره و طلایی
+BG_TOP, BG_BOTTOM = (62, 24, 88), (14, 6, 26)
+GOLD, GOLD_SOFT = (240, 200, 110), (190, 150, 80)
+PANEL, PANEL_EDGE = (48, 22, 70), (150, 115, 70)
+WHITE, MUTED = (250, 244, 235), (205, 185, 215)
+PATTERN = (80, 40, 105)
+
+
+@lru_cache(maxsize=None)
+def _font(weight: str, size: int) -> ImageFont.FreeTypeFont:
+    return ImageFont.truetype(
+        str(FONTS / f"Vazirmatn-{weight}.ttf"), size, layout_engine=ImageFont.Layout.BASIC
+    )
+
+
+@lru_cache(maxsize=None)
+def _logo(size: int) -> Image.Image:
+    return Image.open(ASSETS / "logo.png").convert("RGBA").resize((size, size), Image.LANCZOS)
+
+
+def _rtl(text: str) -> str:
+    return get_display(arabic_reshaper.reshape(text))
+
+
+def _center(draw: ImageDraw.ImageDraw, y: int, text: str, font, fill) -> None:
+    draw.text((W // 2, y), _rtl(text), font=font, fill=fill, anchor="mm")
+
+
+def _star(draw: ImageDraw.ImageDraw, cx: float, cy: float, r: float, fill=None, outline=None, width=2):
+    """ستارهٔ هشت‌پر (دو مربع روی هم) به سبک نقوش اسلامی."""
+    for rot in (0, math.pi / 4):
+        pts = [
+            (cx + r * math.cos(rot + k * math.pi / 2), cy + r * math.sin(rot + k * math.pi / 2))
+            for k in range(4)
+        ]
+        draw.polygon(pts, fill=fill, outline=outline, width=width)
+
+
+@lru_cache(maxsize=1)
+def _background() -> Image.Image:
+    """پس‌زمینه یک بار ساخته می‌شود و برای هر کارت فقط کپی می‌شود."""
+    img = Image.new("RGB", (W, H))
+    draw = ImageDraw.Draw(img)
+    for y in range(H):
+        t = y / H
+        draw.line(
+            [(0, y), (W, y)],
+            fill=tuple(int(a + (b - a) * t) for a, b in zip(BG_TOP, BG_BOTTOM)),
+        )
+    # ستاره‌های کم‌رنگ پس‌زمینه
+    for x in range(0, W + 1, 135):
+        for y in range(0, H + 1, 135):
+            _star(draw, x, y, 22, outline=PATTERN, width=1)
+    return img
+
+
+def render(title: str, full_name: str, items: list[tuple[str, str, str]]) -> bytes:
+    """items: [(عنوان، مقدار اصلی، زیرنویس)] — سه مورد جا می‌شود."""
+    img = _background().copy()
+    draw = ImageDraw.Draw(img)
+
+    # سربرگ: لوگو با حلقهٔ طلایی
+    draw.ellipse([(W // 2 - 86, 34), (W // 2 + 86, 206)], outline=GOLD, width=4)
+    img.paste(_logo(160), (W // 2 - 80, 40), _logo(160))
+    _center(draw, 250, title, _font("Black", 64), GOLD)
+    _center(draw, 322, full_name, _font("Bold", 46), WHITE)
+    draw.line([(W // 2 - 220, 372), (W // 2 + 220, 372)], fill=GOLD_SOFT, width=2)
+
+    box_h, gap = 240, 38
+    top = 410 + (3 - len(items)) * (box_h + gap) // 2
+    for i, (label, value, sub) in enumerate(items):
+        y0 = top + i * (box_h + gap)
+        draw.rounded_rectangle(
+            [(90, y0), (W - 90, y0 + box_h)], radius=36, fill=PANEL, outline=PANEL_EDGE, width=3
+        )
+        _star(draw, W - 90, y0 + box_h // 2, 30, fill=GOLD)
+        _center(draw, y0 + 52, label, _font("Bold", 34), MUTED)
+        _center(draw, y0 + 130, value, _font("Black", 76), GOLD)
+        _center(draw, y0 + 200, sub, _font("Regular", 26), MUTED)
+
+    _center(draw, H - 70, BRAND, _font("Bold", 30), GOLD_SOFT)
+
+    buf = io.BytesIO()
+    img.save(buf, "PNG", compress_level=6)
+    return buf.getvalue()

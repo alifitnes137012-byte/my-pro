@@ -1,0 +1,6 @@
+python-telegram-bot>=21,<23
+pillow>=10
+arabic-reshaper>=3
+python-bidi>=0.4
+flask>=2
+openpyxl>=3.1

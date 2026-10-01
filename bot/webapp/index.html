@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>مینی اپ استاد فاطمه سادات جعفرنیا</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+@font-face { font-family: Vazirmatn; font-weight: 400; src: url("static/Vazirmatn-Regular.ttf"); font-display: swap; }
+@font-face { font-family: Vazirmatn; font-weight: 700; src: url("static/Vazirmatn-Bold.ttf"); font-display: swap; }
+@font-face { font-family: Vazirmatn; font-weight: 900; src: url("static/Vazirmatn-Black.ttf"); font-display: swap; }
+
+:root {
+  --bg-top: #3e1858;
+  --bg-bottom: #0e061a;
+  --panel: rgba(58, 26, 84, .55);
+  --panel-edge: rgba(240, 200, 110, .35);
+  --gold: #f0c86e;
+  --gold-deep: #b8862f;
+  --gold-light: #fff1c4;
+  --text: #faf4eb;
+  --muted: #cdb9d7;
+  --danger: #ff9a9a;
+  --gold-grad: linear-gradient(135deg, #fff1c4 0%, #f0c86e 35%, #b8862f 70%, #f7d98c 100%);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  font-family: Vazirmatn, Tahoma, sans-serif;
+  color: var(--text);
+  background: radial-gradient(120% 70% at 50% 0%, var(--bg-top) 0%, #1e0b30 55%, var(--bg-bottom) 100%) fixed;
+  background-color: var(--bg-bottom);
+  overflow-x: hidden;
+}
+/* نقش ستارهٔ هشت‌پر در پس‌زمینه */
+body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; opacity: .13;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cg fill='none' stroke='%23f0c86e' stroke-width='1'%3E%3Crect x='31' y='31' width='28' height='28'/%3E%3Crect x='31' y='31' width='28' height='28' transform='rotate(45 45 45)'/%3E%3C/g%3E%3C/svg%3E");
+}
+/* ذرات طلایی شناور */
+.sparkles { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.sparkles i {
+  position: absolute; bottom: -10px; width: 4px; height: 4px; border-radius: 50%;
+  background: var(--gold-light); box-shadow: 0 0 8px 2px rgba(240, 200, 110, .7);
+  animation: rise linear infinite; opacity: 0;
+}
+@keyframes rise {
+  0% { transform: translateY(0) scale(.6); opacity: 0; }
+  15% { opacity: .9; }
+  100% { transform: translateY(-105vh) scale(1.1); opacity: 0; }
+}
+
+main { position: relative; max-width: 520px; margin: 0 auto; padding: 22px 16px 40px; }
+.view { display: none; animation: fade .45s ease; }
+.view.active { display: block; }
+@keyframes fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* سربرگ */
+.hero { text-align: center; padding-top: 8px; }
+.logo {
+  width: 116px; height: 116px; margin: 0 auto; border-radius: 50%; position: relative;
+  background: url("static/logo.png") center/cover;
+  box-shadow: 0 0 0 3px var(--gold), 0 0 34px 6px rgba(240, 200, 110, .45);
+  animation: glow 3.2s ease-in-out infinite;
+}
+@keyframes glow { 50% { box-shadow: 0 0 0 3px var(--gold), 0 0 48px 12px rgba(240, 200, 110, .6); } }
+.brand {
+  margin: 18px 0 2px; font-weight: 900; font-size: 44px; line-height: 1.3;
+  background: var(--gold-grad); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 8px rgba(240, 200, 110, .25));
+}
+.teacher { font-weight: 700; font-size: 20px; margin: 0; }
+.divider { display: flex; align-items: center; gap: 10px; justify-content: center; margin: 16px auto 18px; max-width: 280px; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+.divider span { color: var(--gold); font-size: 18px; }
+.welcome { text-align: center; color: var(--muted); line-height: 2; margin: 0 0 22px; font-size: 15px; }
+
+/* کارت‌ها */
+.panel {
+  background: var(--panel); border: 1px solid var(--panel-edge); border-radius: 22px;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 241, 196, .08);
+}
+.service {
+  display: flex; align-items: center; gap: 14px; width: 100%; padding: 18px; margin-bottom: 14px;
+  color: inherit; font: inherit; text-align: right; cursor: pointer; transition: transform .15s ease;
+}
+.service:active { transform: scale(.98); }
+.service .icon {
+  flex: none; width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; font-size: 26px;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 241, 196, .25), rgba(184, 134, 47, .15));
+  border: 1px solid var(--panel-edge);
+}
+.service b { display: block; font-size: 18px; color: var(--gold-light); }
+.service small { color: var(--muted); font-size: 13px; }
+.service .arrow { margin-right: auto; color: var(--gold); font-size: 22px; }
+
+/* فرم */
+.form-head { text-align: center; margin: 4px 0 18px; }
+.form-head h2 { margin: 8px 0 4px; font-size: 21px; line-height: 1.6; font-weight: 900; color: var(--gold); }
+.form-head p { margin: 0; color: var(--muted); font-size: 14px; }
+.field { padding: 16px; margin-bottom: 12px; }
+.field label { display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 4px; }
+.field label em { font-style: normal; font-weight: 400; font-size: 12px; color: var(--muted); }
+.field .hint { color: var(--muted); font-size: 12.5px; margin: 0 0 10px; line-height: 1.8; }
+input, select {
+  width: 100%; font: inherit; font-size: 16px; color: var(--text); padding: 12px 14px; border-radius: 14px;
+  background: rgba(14, 6, 26, .55); border: 1px solid rgba(240, 200, 110, .25); outline: none;
+  transition: border-color .2s, box-shadow .2s; appearance: none; -webkit-appearance: none;
+}
+input:focus, select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(240, 200, 110, .18); }
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23f0c86e' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-position: 12px 50%; background-repeat: no-repeat; padding-left: 30px; text-align: right;
+}
+.date { display: grid; grid-template-columns: 1fr 1.4fr 1.2fr; gap: 8px; }
+.error { color: var(--danger); font-size: 13px; margin-top: 8px; display: none; }
+.field.invalid input, .field.invalid select { border-color: var(--danger); }
+.field.invalid .error { display: block; }
+
+.btn {
+  display: block; width: 100%; border: 0; cursor: pointer; font: inherit; font-weight: 900; font-size: 18px;
+  padding: 16px; border-radius: 18px; color: #2a1238; background: var(--gold-grad); margin-top: 18px;
+  box-shadow: 0 8px 24px rgba(240, 200, 110, .3); position: relative; overflow: hidden;
+}
+.btn::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .55), transparent);
+  animation: shine 3s ease-in-out infinite;
+}
+@keyframes shine { 60%, 100% { left: 130%; } }
+.btn.ghost { background: transparent; color: var(--gold); border: 1px solid var(--panel-edge); box-shadow: none; }
+.btn.ghost::after { display: none; }
+.btn.share { margin-top: 4px; font-size: 16px; padding: 13px; }
+.btn.share:disabled { opacity: 1; border-color: var(--gold); cursor: default; }
+.notice { text-align: center; color: var(--danger); margin-top: 12px; font-size: 14px; }
+
+/* در حال محاسبه */
+.loader { position: fixed; inset: 0; display: none; place-items: center; z-index: 10;
+  background: radial-gradient(circle at 50% 45%, #3e1858, #0e061a 75%); }
+.loader.active { display: grid; animation: fade .3s ease; }
+.orbit { position: relative; width: 300px; height: 300px; }
+.orbit .core { position: absolute; inset: 85px; border-radius: 50%; background: url("static/logo.png") center/cover;
+  box-shadow: 0 0 40px 10px rgba(240, 200, 110, .45); animation: glow 1.6s ease-in-out infinite; }
+.ring { position: absolute; border-radius: 50%; border: 3px solid transparent; }
+.ring.r1 { inset: 62px; border-top-color: var(--gold); border-bottom-color: var(--gold); animation: spin 2.4s linear infinite; }
+.ring.r2 { inset: 50px; border-width: 2px; border-left-color: var(--gold-deep); border-right-color: var(--gold-deep); animation: spin 3.2s linear infinite reverse; }
+.digits { position: absolute; inset: 0; animation: spin 14s linear infinite; }
+.digits span { position: absolute; left: 50%; top: 50%; color: var(--gold); font-weight: 700; font-size: 20px;
+  animation: twinkle 2s ease-in-out infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes twinkle { 50% { opacity: .35; } }
+.loader p { text-align: center; color: var(--gold); font-weight: 700; font-size: 20px; margin: 10px 0 0; }
+
+/* نتیجه */
+.result-card { padding: 20px 18px; margin-bottom: 14px; text-align: center; position: relative; }
+.result-card .lbl { color: var(--muted); font-weight: 700; }
+.result-card .val {
+  direction: ltr; font-weight: 900; font-size: 44px; letter-spacing: 10px; margin: 8px 0 2px;
+  background: var(--gold-grad); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.result-card .val.words { direction: rtl; letter-spacing: 0; font-size: 36px; }
+.result-card .sub { color: var(--muted); font-size: 13px; }
+.copy { position: absolute; top: 12px; left: 12px; border: 1px solid var(--panel-edge); background: transparent;
+  color: var(--gold); border-radius: 10px; padding: 4px 10px; font: inherit; font-size: 12px; cursor: pointer; }
+.card-img { width: 100%; border-radius: 18px; margin-top: 8px; border: 1px solid var(--panel-edge); }
+.sent { text-align: center; color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+.greeting { text-align: center; line-height: 2; color: var(--muted); margin: 0 0 16px; }
+</style>
+</head>
+<body>
+<div class="sparkles" id="sparkles"></div>
+
+<main>
+  <!-- خانه -->
+  <section class="view active" id="home">
+    <div class="hero">
+      <div class="logo"></div>
+      <h1 class="brand">مینی اپ</h1>
+      <p class="teacher">استاد فاطمه سادات جعفرنیا</p>
+      <div class="divider"><span>✦</span></div>
+      <p class="welcome">سلام، خوش اومدید 🌙<br>خوشحال هستیم که به ما اعتماد کردید و کنارمون هستید.</p>
+    </div>
+    <div id="services"></div>
+  </section>
+
+  <!-- فرم -->
+  <section class="view" id="form">
+    <div class="form-head">
+      <div class="logo" style="width:70px;height:70px"></div>
+      <h2 id="form-title"></h2>
+      <p>اطلاعات را مطابق شناسنامه وارد کنید</p>
+    </div>
+    <form id="fields" novalidate></form>
+    <button class="btn" id="submit">✨ محاسبه</button>
+    <p class="notice" id="form-error"></p>
+  </section>
+
+  <!-- نتیجه -->
+  <section class="view" id="result">
+    <div class="form-head">
+      <div class="logo" style="width:70px;height:70px"></div>
+      <h2 id="result-title"></h2>
+      <p id="result-name" style="color:var(--text);font-weight:700;font-size:17px"></p>
+    </div>
+    <p class="greeting">با سلام ممنون از اینکه صبوری کردید و منتظر موندید. خدمت شما:</p>
+    <div id="result-items"></div>
+    <img class="card-img" id="card-img" alt="کارت نتیجه">
+    <p class="sent" id="sent"></p>
+    <button class="btn ghost" id="edit">✏️ ویرایش اطلاعات</button>
+    <button class="btn ghost" id="again" style="margin-top:10px">🏠 بازگشت به خانه</button>
+  </section>
+</main>
+
+<div class="loader" id="loader">
+  <div>
+    <div class="orbit">
+      <div class="digits" id="digits"></div>
+      <div class="ring r2"></div>
+      <div class="ring r1"></div>
+      <div class="core"></div>
+    </div>
+    <p>در حال محاسبه...</p>
+  </div>
+</div>
+
+<script>
+const tg = window.Telegram && Telegram.WebApp;
+if (tg) {
+  tg.ready(); tg.expand();
+  try { tg.setHeaderColor("#2a1040"); tg.setBackgroundColor("#0e061a"); } catch (e) {}
+}
+const haptic = (t) => { try { tg.HapticFeedback.notificationOccurred(t); } catch (e) {} };
+const $ = (id) => document.getElementById(id);
+const FA = "۰۱۲۳۴۵۶۷۸۹";
+const fa = (n) => String(n).replace(/\d/g, (d) => FA[d]);
+const MONTHS = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
+const HINTS = {
+  phone: '<p class="hint">دکمه را بزنید و در پنجرهٔ تلگرام ارسال شماره را تأیید کنید</p>',
+  fullname: '<p class="hint">دقیقاً مطابق شناسنامه، با پیشوند و پسوند</p>',
+  date: '<p class="hint">تاریخ شمسی؛ اگر تاریخ واقعی با شناسنامه فرق دارد، تاریخ واقعی را انتخاب کنید</p>',
+};
+const ICONS = { pin: "🔐", zikr: "✨" };
+const DESCS = { pin: "رمز ۴ رقمی و کد کارماسوزی ۷ رقمی", zikr: "سه ذکر مخصوص شما بر اساس ابجد" };
+
+// ذرات طلایی
+for (let i = 0; i < 26; i++) {
+  const s = document.createElement("i");
+  s.style.left = Math.random() * 100 + "%";
+  s.style.animationDuration = 7 + Math.random() * 9 + "s";
+  s.style.animationDelay = -Math.random() * 12 + "s";
+  $("sparkles").appendChild(s);
+}
+// اعداد مداری در انیمیشن
+"۱۲۳۴۵۶۷۸۹".split("").forEach((d, k) => {
+  const a = (k / 9) * 2 * Math.PI, el = document.createElement("span");
+  el.textContent = d;
+  el.style.transform = `translate(-50%,-50%) translate(${Math.cos(a) * 138}px,${Math.sin(a) * 138}px)`;
+  el.style.animationDelay = k * 0.2 + "s";
+  $("digits").appendChild(el);
+});
+
+let flows = [], current = null;
+
+function show(view) {
+  document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.id === view));
+  window.scrollTo(0, 0);
+  if (tg) view === "home" ? tg.BackButton.hide() : tg.BackButton.show();
+}
+if (tg) tg.BackButton.onClick(() => show($("result").classList.contains("active") ? "form" : "home"));
+
+async function load() {
+  flows = await (await fetch("api/flows")).json();
+  $("services").innerHTML = "";
+  flows.forEach((f) => {
+    const b = document.createElement("button");
+    b.className = "service panel";
+    b.innerHTML = `<span class="icon">${ICONS[f.key] || "✦"}</span>
+      <span><b>${f.title.replace(/^\S+\s/, "")}</b><small>${DESCS[f.key] || ""}</small></span>
+      <span class="arrow">‹</span>`;
+    b.onclick = () => openFlow(f);
+    $("services").appendChild(b);
+  });
+}
+
+function option(value, text) {
+  const o = document.createElement("option"); o.value = value; o.textContent = text; return o;
+}
+
+function openFlow(f) {
+  current = f;
+  $("form-title").textContent = f.intro;
+  $("form-error").textContent = "";
+  const form = $("fields"); form.innerHTML = "";
+  f.fields.forEach((x) => {
+    const box = document.createElement("div");
+    box.className = "field panel"; box.dataset.key = x.key;
+    const label = x.label.replace(/^\S+\s/, "");
+    box.innerHTML = `<label>${x.label}${x.optional ? "<em>اختیاری</em>" : ""}</label>
+      ${HINTS[x.kind] || (x.optional ? `<p class="hint">${x.prompt.split("\n")[1] || ""}</p>` : "")}
+      <div class="error"></div>`;
+    const err = box.querySelector(".error");
+    if (x.kind === "date") {
+      const wrap = document.createElement("div"); wrap.className = "date";
+      const d = document.createElement("select"), m = document.createElement("select"), y = document.createElement("select");
+      d.append(option("", "روز")); for (let i = 1; i <= 31; i++) d.append(option(i, fa(i)));
+      m.append(option("", "ماه")); MONTHS.forEach((n, i) => m.append(option(i + 1, n)));
+      y.append(option("", "سال")); for (let i = 1404; i >= 1300; i--) y.append(option(i, fa(i)));
+      [d, m, y].forEach((s) => (s.dataset.part = s === d ? "d" : s === m ? "m" : "y"));
+      wrap.append(d, m, y); box.insertBefore(wrap, err);
+    } else if (x.kind === "phone") {
+      // فقط شمارهٔ خود کاربر از طریق پنجرهٔ تأیید تلگرام؛ تایپ دستی ممکن نیست
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.className = "btn ghost share"; btn.textContent = "📱 ارسال شمارهٔ من";
+      btn.onclick = () => {
+        if (!tg || !tg.requestContact) { err.textContent = "لطفاً تلگرام را به‌روز کنید."; box.classList.add("invalid"); return; }
+        tg.requestContact((shared, res) => {
+          if (!shared) { box.classList.add("invalid"); err.textContent = "برای ادامه، ارسال شماره لازم است."; return; }
+          const phone = res && res.responseUnsafe && res.responseUnsafe.contact && res.responseUnsafe.contact.phone_number;
+          box.dataset.ok = "1"; box.classList.remove("invalid");
+          btn.textContent = "✅ " + (phone ? fa(phone.replace(/^\+?98/, "0")) : "شماره ارسال شد");
+          btn.disabled = true; haptic("success");
+        });
+      };
+      box.insertBefore(btn, err);
+    } else {
+      const inp = document.createElement("input");
+      inp.type = "text"; inp.autocomplete = "off";
+      inp.placeholder = x.kind === "fullname" ? "مثلاً: علی صادقی" : label;
+      box.insertBefore(inp, err);
+    }
+    form.appendChild(box);
+  });
+  show("form");
+}
+
+function collect() {
+  const values = {};
+  current.fields.forEach((x) => {
+    const box = document.querySelector(`.field[data-key="${x.key}"]`);
+    if (x.kind === "date") {
+      const p = (k) => box.querySelector(`[data-part="${k}"]`).value;
+      values[x.key] = p("y") && p("m") && p("d") ? `${p("y")}/${p("m")}/${p("d")}` : "";
+    } else if (x.kind === "phone") values[x.key] = box.dataset.ok ? "shared" : "";
+    else values[x.key] = box.querySelector("input").value;
+  });
+  return values;
+}
+
+function showErrors(errors) {
+  document.querySelectorAll(".field").forEach((box) => {
+    const e = errors[box.dataset.key];
+    box.classList.toggle("invalid", !!e);
+    box.querySelector(".error").textContent = e || "";
+  });
+  const first = document.querySelector(".field.invalid");
+  if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+$("submit").onclick = async (ev) => {
+  ev.preventDefault();
+  $("form-error").textContent = "";
+  const values = collect(), missing = {};
+  current.fields.forEach((x) => { if (!x.optional && !values[x.key].trim()) missing[x.key] = "این بخش را پر کنید"; });
+  showErrors(missing);
+  if (Object.keys(missing).length) { haptic("error"); return; }
+
+  $("loader").classList.add("active");
+  const started = Date.now();
+  let data;
+  try {
+    const res = await fetch("api/compute", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initData: tg ? tg.initData : "", flow: current.key, values }),
+    });
+    data = await res.json();
+  } catch (e) {
+    data = { ok: false, error: "ارتباط برقرار نشد، دوباره تلاش کنید." };
+  }
+  await new Promise((r) => setTimeout(r, Math.max(0, 2600 - (Date.now() - started))));
+  $("loader").classList.remove("active");
+
+  if (!data.ok) {
+    haptic("error");
+    if (data.errors) showErrors(data.errors);
+    else $("form-error").textContent = data.error || "خطایی رخ داد.";
+    return;
+  }
+  haptic("success");
+  $("result-title").textContent = data.title;
+  $("result-name").textContent = data.name;
+  $("result-items").innerHTML = "";
+  data.items.forEach((it) => {
+    const raw = it.value.replace(/\s/g, ""), isCode = /^\d+$/.test(raw);
+    const card = document.createElement("div");
+    card.className = "result-card panel";
+    card.innerHTML = `<div class="lbl">${it.label}</div>
+      <div class="val ${isCode ? "" : "words"}">${isCode ? raw : it.value}</div>
+      <div class="sub">${it.sub}</div>
+      ${isCode ? '<button class="copy">کپی</button>' : ""}`;
+    const btn = card.querySelector(".copy");
+    if (btn) btn.onclick = () => navigator.clipboard.writeText(raw).then(() => { btn.textContent = "کپی شد ✓"; haptic("success"); });
+    $("result-items").appendChild(card);
+  });
+  $("card-img").src = "data:image/png;base64," + data.card;
+  $("sent").textContent = data.sent ? "📩 نتیجه در چت ربات هم برای شما ارسال شد." : "برای ذخیره، روی تصویر نگه دارید.";
+  show("result");
+};
+
+$("edit").onclick = () => show("form");
+$("again").onclick = () => show("home");
+load();
+</script>
+</body>
+</html>
