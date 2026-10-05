@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Daily AI-news -> Persian Instagram Reel script -> Telegram.
 
-Env: ANTHROPIC_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+Env: GEMINI_API_KEY (preferred, free) or ANTHROPIC_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 Flags: --dry-run  print the message instead of sending it
 """
 import json, os, re, sys, time, urllib.request, xml.etree.ElementTree as ET
@@ -26,8 +26,11 @@ HN_AI = re.compile(r"\b(ai|llm|gpt|claude|gemini|openai|anthropic|deepseek|model
 
 def get(url, data=None, headers=None):
     req = urllib.request.Request(url, data=data, headers={"User-Agent": "ai-news-bot", **(headers or {})})
-    with urllib.request.urlopen(req, timeout=25) as r:
-        return r.read()
+    try:
+        with urllib.request.urlopen(req, timeout=45) as r:
+            return r.read()
+    except urllib.error.HTTPError as e:
+        sys.exit(f"HTTP {e.code} from {url.split('?')[0].split('/bot')[0]}: {e.read().decode(errors='replace')[:500]}")
 
 
 def parse_date(s):
@@ -94,6 +97,16 @@ NEWS ITEMS:
 """
 
 
+def gemini(prompt):
+    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    body = json.dumps({"contents": [{"parts": [{"text": prompt}]}],
+                       "generationConfig": {"responseMimeType": "application/json"}}).encode()
+    out = json.loads(get(f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent", body, {
+        "x-goog-api-key": os.environ["GEMINI_API_KEY"], "content-type": "application/json"}))
+    text = out["candidates"][0]["content"]["parts"][0]["text"]
+    return json.loads(text[text.index("{"): text.rindex("}") + 1])
+
+
 def claude(prompt):
     body = json.dumps({"model": MODEL, "max_tokens": 2000, "messages": [{"role": "user", "content": prompt}]}).encode()
     base = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com")
@@ -134,7 +147,8 @@ def main():
     if not items:
         print("no new items"); return
     listing = "\n".join(f"[{n}] ({i['source']}) {i['title']} — {i['summary']}" for n, i in enumerate(items))
-    script = claude(PROMPT.format(items=listing))
+    llm = gemini if os.environ.get("GEMINI_API_KEY") else claude
+    script = llm(PROMPT.format(items=listing))
     story = items[int(script["story_index"])]
     msg = format_msg(script, story)
     if "--dry-run" in sys.argv:
