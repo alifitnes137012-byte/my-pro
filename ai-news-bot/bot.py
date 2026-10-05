@@ -97,7 +97,7 @@ NEWS ITEMS:
 
 
 def gemini(prompt):
-    models = [os.environ["GEMINI_MODEL"]] if os.environ.get("GEMINI_MODEL") else ["gemini-3.8-flash", "gemini-flash-latest", "gemini-2.5-flash-lite"]
+    models = [os.environ["GEMINI_MODEL"]] if os.environ.get("GEMINI_MODEL") else ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.5-flash-lite"]
     body = json.dumps({"contents": [{"parts": [{"text": prompt}]}],
                        "generationConfig": {"responseMimeType": "application/json"}}).encode()
     out = None
