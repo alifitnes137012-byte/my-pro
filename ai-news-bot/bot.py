@@ -15,7 +15,6 @@ MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-5-5")
 FEEDS = [
     "https://techcrunch.com/category/artificial-intelligence/feed/",
     "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
-    "https://venturebeat.com/category/ai/feed/",
     "https://openai.com/news/rss.xml",
     "https://blog.google/technology/ai/rss/",
     "https://huggingface.co/blog/feed.xml",
@@ -30,7 +29,7 @@ def get(url, data=None, headers=None):
         with urllib.request.urlopen(req, timeout=45) as r:
             return r.read()
     except urllib.error.HTTPError as e:
-        sys.exit(f"HTTP {e.code} from {url.split('?')[0].split('/bot')[0]}: {e.read().decode(errors='replace')[:500]}")
+        raise RuntimeError(f"HTTP {e.code} from {url.split('?')[0].split('/bot')[0]}: {e.read().decode(errors='replace')[:500]}")
 
 
 def parse_date(s):
