@@ -18,13 +18,11 @@ FEEDS = [
     "https://openai.com/news/rss.xml",
     "https://blog.google/technology/ai/rss/",
     "https://huggingface.co/blog/feed.xml",
-    "https://news.ycombinator.com/rss",
     "https://feeds.arstechnica.com/arstechnica/technology-lab",
     "https://www.technologyreview.com/topic/artificial-intelligence/feed",
     "https://deepmind.google/blog/rss.xml",
     "https://blogs.nvidia.com/feed/",
     "https://www.wired.com/feed/tag/ai/latest/rss",
-    "https://www.marktechpost.com/feed/",
     "https://the-decoder.com/feed/",
 ]
 HN_AI = re.compile(r"\b(ai|llm|gpt|claude|gemini|openai|anthropic|deepseek|model|agent)\b", re.I)
@@ -50,7 +48,7 @@ def parse_date(s):
     return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
 
 
-def collect(hours=72):
+def collect(hours=24):
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
     items = []
     for url in FEEDS:
@@ -142,7 +140,7 @@ def format_msg(s, story, n, total):
     words = len(" ".join([s["hook"], *s["body"], s["cta"]]).split())
     lines = [
         f"🎬 ریلز {n} از {total}", "",
-        f"📰 خبر: {story['title']}", f"🔗 {story['url']}", "",
+        f"📰 خبر: {story['title']}", f"🗞 منبع: {story['source']} | 🕒 {story['date'].strftime('%Y-%m-%d %H:%M')} UTC", f"🔗 {story['url']}", "",
         f"🪝 هوک (۳ ثانیه اول):\n{s['hook']}", "",
         "📖 بدنه:\n" + "\n".join(f"{i}. {b}" for i, b in enumerate(s["body"], 1)), "",
         f"📣 CTA:\n{s['cta']}", "",
@@ -164,7 +162,9 @@ def telegram(text):
 
 def main():
     seen = set(json.loads(STATE.read_text())) if STATE.exists() else set()
-    items = [i for i in collect() if i["url"] not in seen]
+    items = [i for i in collect(24) if i["url"] not in seen]
+    if len(items) < N_REELS * 2:  # too few fresh stories: widen the window to 48h
+        items = [i for i in collect(48) if i["url"] not in seen]
     per_source, picked = {}, []
     for i in items:  # newest first, max 6 per source for variety
         if per_source.get(i["source"], 0) < 6:
