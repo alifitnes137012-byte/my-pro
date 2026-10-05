@@ -97,11 +97,18 @@ NEWS ITEMS:
 
 
 def gemini(prompt):
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    models = [os.environ["GEMINI_MODEL"]] if os.environ.get("GEMINI_MODEL") else ["gemini-3.8-flash", "gemini-flash-latest"]
     body = json.dumps({"contents": [{"parts": [{"text": prompt}]}],
                        "generationConfig": {"responseMimeType": "application/json"}}).encode()
-    out = json.loads(get(f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent", body, {
-        "x-goog-api-key": os.environ["GEMINI_API_KEY"], "content-type": "application/json"}))
+    for i, model in enumerate(models):
+        try:
+            out = json.loads(get(f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent", body, {
+                "x-goog-api-key": os.environ["GEMINI_API_KEY"], "content-type": "application/json"}))
+            break
+        except RuntimeError as e:
+            if i == len(models) - 1 or "HTTP 404" not in str(e):
+                raise
+            print(f"model {model} unavailable, trying next", file=sys.stderr)
     text = out["candidates"][0]["content"]["parts"][0]["text"]
     return json.loads(text[text.index("{"): text.rindex("}") + 1])
 
