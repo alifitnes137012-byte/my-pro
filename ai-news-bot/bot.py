@@ -19,6 +19,13 @@ FEEDS = [
     "https://blog.google/technology/ai/rss/",
     "https://huggingface.co/blog/feed.xml",
     "https://news.ycombinator.com/rss",
+    "https://feeds.arstechnica.com/arstechnica/technology-lab",
+    "https://www.technologyreview.com/topic/artificial-intelligence/feed",
+    "https://deepmind.google/blog/rss.xml",
+    "https://blogs.nvidia.com/feed/",
+    "https://www.wired.com/feed/tag/ai/latest/rss",
+    "https://www.marktechpost.com/feed/",
+    "https://the-decoder.com/feed/",
 ]
 HN_AI = re.compile(r"\b(ai|llm|gpt|claude|gemini|openai|anthropic|deepseek|model|agent)\b", re.I)
 
@@ -26,7 +33,7 @@ HN_AI = re.compile(r"\b(ai|llm|gpt|claude|gemini|openai|anthropic|deepseek|model
 def get(url, data=None, headers=None):
     req = urllib.request.Request(url, data=data, headers={"User-Agent": "ai-news-bot", **(headers or {})})
     try:
-        with urllib.request.urlopen(req, timeout=45) as r:
+        with urllib.request.urlopen(req, timeout=170) as r:
             return r.read()
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"HTTP {e.code} from {url.split('?')[0].split('/bot')[0]}: {e.read().decode(errors='replace')[:500]}")
@@ -43,7 +50,7 @@ def parse_date(s):
     return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
 
 
-def collect(hours=48):
+def collect(hours=72):
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
     items = []
     for url in FEEDS:
@@ -63,7 +70,7 @@ def collect(hours=48):
             d_el = next((e for e in map(f, ("pubDate", "published", "updated")) if e is not None), None)
             date = parse_date(d_el.text) if d_el is not None and d_el.text else None
             desc_el = next((e for e in map(f, ("description", "summary", "content")) if e is not None), None)
-            desc = re.sub(r"<[^>]+>", " ", desc_el.text or "")[:600] if desc_el is not None else ""
+            desc = re.sub(r"<[^>]+>", " ", desc_el.text or "")[:300] if desc_el is not None else ""
             if not title or not link or not date or date < cutoff:
                 continue
             if "ycombinator" in url and not HN_AI.search(title):
@@ -73,14 +80,16 @@ def collect(hours=48):
     return items
 
 
-PROMPT = """You are a Persian-language Instagram Reels scriptwriter for an AI-news page.
-From the news items below pick the SINGLE most important/viral-worthy story for today
-(prefer major launches, big-company moves, surprising results; skip pure opinion/duplicates).
-Write everything in fluent, natural, conversational Persian (Farsi), tech terms may stay in English.
+N_REELS = int(os.environ.get("N_REELS", "10"))
 
-Return ONLY JSON:
-{{
- "story_index": <index>,
+PROMPT = """You are a Persian-language Instagram Reels scriptwriter for an AI-news page.
+From the news items below pick the {n} most important / viral-worthy DIFFERENT stories for today, ranked best first
+(prefer major launches, big-company moves, surprising results; skip pure opinion and duplicate coverage of the same event).
+If fewer than {n} good distinct stories exist, return fewer. Each story = one separate Reel.
+Write everything in fluent, natural, conversational Persian (Farsi); tech terms may stay in English.
+
+Return ONLY JSON: {{"reels": [ {{
+ "story_index": <index of the item>,
  "hook": "first 3 seconds, <=12 words, scroll-stopping, curiosity/shock, no clickbait lie",
  "body": ["3-4 short punchy lines, each one spoken beat, simple words, concrete facts/numbers"],
  "cta": "one line asking to follow / comment a specific keyword / save+share",
@@ -88,8 +97,8 @@ Return ONLY JSON:
  "visual_notes": "b-roll/visual ideas per beat, 1-2 sentences",
  "caption": "Instagram caption, 2-3 lines + question to drive comments",
  "hashtags": ["10-12 hashtags, mix Persian/English"]
-}}
-Constraint: hook+body+cta spoken total MUST be 110-140 Persian words (~45-55 seconds). Do not invent facts beyond the items.
+}} ]}}
+Constraint per reel: hook+body+cta spoken total MUST be 110-140 Persian words (~45-55 seconds). Do not invent facts beyond the items.
 
 NEWS ITEMS:
 {items}
@@ -99,7 +108,7 @@ NEWS ITEMS:
 def gemini(prompt):
     models = [os.environ["GEMINI_MODEL"]] if os.environ.get("GEMINI_MODEL") else ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.5-flash-lite"]
     body = json.dumps({"contents": [{"parts": [{"text": prompt}]}],
-                       "generationConfig": {"responseMimeType": "application/json"}}).encode()
+                       "generationConfig": {"responseMimeType": "application/json", "maxOutputTokens": 32000}}).encode()
     out = None
     for attempt in range(4):
         for model in models:
@@ -120,7 +129,7 @@ def gemini(prompt):
 
 
 def claude(prompt):
-    body = json.dumps({"model": MODEL, "max_tokens": 2000, "messages": [{"role": "user", "content": prompt}]}).encode()
+    body = json.dumps({"model": MODEL, "max_tokens": 16000, "messages": [{"role": "user", "content": prompt}]}).encode()
     base = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com")
     out = json.loads(get(f"{base}/v1/messages", body, {
         "x-api-key": os.environ["ANTHROPIC_API_KEY"], "anthropic-version": "2023-06-01",
@@ -129,10 +138,10 @@ def claude(prompt):
     return json.loads(text[text.index("{"): text.rindex("}") + 1])
 
 
-def format_msg(s, story):
+def format_msg(s, story, n, total):
     words = len(" ".join([s["hook"], *s["body"], s["cta"]]).split())
     lines = [
-        "🎬 سناریوی ریلز امروز", "",
+        f"🎬 ریلز {n} از {total}", "",
         f"📰 خبر: {story['title']}", f"🔗 {story['url']}", "",
         f"🪝 هوک (۳ ثانیه اول):\n{s['hook']}", "",
         "📖 بدنه:\n" + "\n".join(f"{i}. {b}" for i, b in enumerate(s["body"], 1)), "",
@@ -155,19 +164,42 @@ def telegram(text):
 
 def main():
     seen = set(json.loads(STATE.read_text())) if STATE.exists() else set()
-    items = [i for i in collect() if i["url"] not in seen][:40]
+    items = [i for i in collect() if i["url"] not in seen]
+    per_source, picked = {}, []
+    for i in items:  # newest first, max 6 per source for variety
+        if per_source.get(i["source"], 0) < 6:
+            per_source[i["source"]] = per_source.get(i["source"], 0) + 1
+            picked.append(i)
+    items = picked[:60]
     if not items:
         print("no new items"); return
     listing = "\n".join(f"[{n}] ({i['source']}) {i['title']} — {i['summary']}" for n, i in enumerate(items))
     llm = gemini if os.environ.get("GEMINI_API_KEY") else claude
-    script = llm(PROMPT.format(items=listing))
-    story = items[int(script["story_index"])]
-    msg = format_msg(script, story)
+    reels, used = [], set()
+    for r in llm(PROMPT.format(n=N_REELS, items=listing))["reels"]:
+        try:
+            idx = int(r["story_index"])
+            if idx in used or not 0 <= idx < len(items):
+                continue
+            format_msg(r, items[idx], 1, 1)  # validate fields
+        except (KeyError, ValueError, TypeError) as e:
+            print(f"skipping malformed reel: {e!r}", file=sys.stderr)
+            continue
+        used.add(idx)
+        reels.append((items[idx], r))
+    reels = reels[:N_REELS]
+    reels = [(st, format_msg(r, st, n, len(reels))) for n, (st, r) in enumerate(reels, 1)]
     if "--dry-run" in sys.argv:
-        print(msg); return
-    telegram(msg)
-    STATE.write_text(json.dumps(sorted(seen | {story["url"]})[-200:], indent=1))
-    print("sent:", story["title"])
+        print("\n\n=====\n\n".join(m for _, m in reels)); return
+    sent = set()
+    try:
+        for n, (story, msg) in enumerate(reels, 1):
+            telegram(msg)
+            sent.add(story["url"])
+            print(f"sent {n}/{len(reels)}:", story["title"])
+            time.sleep(1.5)
+    finally:
+        STATE.write_text(json.dumps(sorted(seen | sent)[-500:], indent=1))
 
 
 if __name__ == "__main__":
