@@ -97,18 +97,24 @@ NEWS ITEMS:
 
 
 def gemini(prompt):
-    models = [os.environ["GEMINI_MODEL"]] if os.environ.get("GEMINI_MODEL") else ["gemini-3.8-flash", "gemini-flash-latest"]
+    models = [os.environ["GEMINI_MODEL"]] if os.environ.get("GEMINI_MODEL") else ["gemini-3.8-flash", "gemini-flash-latest", "gemini-2.5-flash-lite"]
     body = json.dumps({"contents": [{"parts": [{"text": prompt}]}],
                        "generationConfig": {"responseMimeType": "application/json"}}).encode()
-    for i, model in enumerate(models):
-        try:
-            out = json.loads(get(f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent", body, {
-                "x-goog-api-key": os.environ["GEMINI_API_KEY"], "content-type": "application/json"}))
+    out = None
+    for attempt in range(4):
+        for model in models:
+            try:
+                out = json.loads(get(f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent", body, {
+                    "x-goog-api-key": os.environ["GEMINI_API_KEY"], "content-type": "application/json"}))
+                break
+            except RuntimeError as e:
+                err = e
+                print(f"{model}: {str(e)[:120]!r}, trying next/retrying", file=sys.stderr)
+        if out:
             break
-        except RuntimeError as e:
-            if i == len(models) - 1 or "HTTP 404" not in str(e):
-                raise
-            print(f"model {model} unavailable, trying next", file=sys.stderr)
+        time.sleep(10 * (attempt + 1))
+    if not out:
+        raise err
     text = out["candidates"][0]["content"]["parts"][0]["text"]
     return json.loads(text[text.index("{"): text.rindex("}") + 1])
 
